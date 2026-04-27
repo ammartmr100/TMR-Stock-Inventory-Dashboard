@@ -1,0 +1,5 @@
+{
+  "name": "Stock Inventory Dashboard",
+  "description": "A real-time stock management dashboard fetching data from Google Sheets, tracking opening stock, transactions, and current inventory.",
+  "requestFramePermissions": []
+}
