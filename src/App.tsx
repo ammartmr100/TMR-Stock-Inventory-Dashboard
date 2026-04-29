@@ -94,6 +94,15 @@ interface StockSummary {
   trimmingQcOut: number;
   trimmingVendorOut: number;
   trimmingRejectionOutToRps: number;
+  // Auto Clave specific
+  autoClaveProdIn: number;
+  autoClaveMiniStoreIn: number;
+  autoClaveMetalIn: number;
+  autoClaveReworkIn: number;
+  autoClaveRejectionOut: number;
+  autoClaveMetalOut: number;
+  // Phosphate specific
+  phosphateOutToBonding: number;
   // FG Store specific
   qcIn: number;
   customerReturnIn: number;
@@ -136,8 +145,8 @@ const MINI_STORE_SHEET_ID = '10J-GQoPN4wgEUxj9qrCuozZzXIbNq1cB5klKXle5ZR4';
 const FG_STORE_SHEET_ID = '1zLy_Te9bReLVV7wSGcoQQw55POlqty9hIUz07jExWeU';
 const TRIMMING_SHEET_ID = '1qZOHb3VvOrdxKi0ZWalPZlT_-MGxkrZH8J0enfSz0v0';
 const BONDING_SHEET_ID = '1DJ7y8B-BgEluN7TKbxJsWYqYZLcLCEfZaM5kYsxHMp8';
-const PHOSPHATE_SHEET_ID = ''; // Placeholder for Phosphate
-const AUTO_CLAVE_SHEET_ID = ''; // Placeholder for Auto Clave
+const PHOSPHATE_SHEET_ID = '118OZYrCoweWvGkfSANu7zKG_ClLPG9EPwN5x7GFpD2w';
+const AUTO_CLAVE_SHEET_ID = '15kYMNiwwFb_gqUVMqIWZiV6HpFUpYY6hveNFq7PDKZE';
 const EXTRUSION_SHEET_ID = '10nIqQgyP8jYcJeEmz6Wkt7j0psKbPYFBKbiVRynpBUI';
 
 const getUrls = (tab: 'molding' | 'oil-seal' | 'quality' | 'trimming' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion') => {
@@ -751,6 +760,10 @@ export default function App() {
         let extrusionProdIn = 0, extrusionMetalIn = 0, extrusionMiniStoreIn = 0, extrusionTrimOut = 0;
         // Bonding specific
         let chemicalStoreIn = 0, phosphateIn = 0, injcMoldOut = 0, hvcmOut = 0, rejectionOutToMetalStore = 0;
+        // Phosphate specific
+        let phosphateOutToBonding = 0;
+        // Auto Clave specific
+        let autoClaveProdIn = 0, autoClaveMiniStoreIn = 0, autoClaveMetalIn = 0, autoClaveRejectionOut = 0, autoClaveMetalOut = 0, autoClaveReworkIn = 0;
         // Quality specific
         let fgReworkIn = 0, metalStoreIn = 0, customerRejectionIn = 0, oilSealTrimmingIn = 0, trimmingIn = 0, extrusionIn = 0;
         let rejectionOutToRps = 0, metalStoreOut = 0, oilSealTrimmingOut = 0, trimmingOut = 0, fgOut = 0, extrusionOut = 0;
@@ -768,7 +781,7 @@ export default function App() {
           const type = t.type.toLowerCase();
           const qty = t.quantity;
 
-          if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+          if (activeTab === 'bonding') {
             if (type.includes('metal') && type.includes('in')) metalStoreIn += qty;
             else if (type.includes('chemical') && type.includes('in')) chemicalStoreIn += qty;
             else if (type.includes('phosphate') && type.includes('in')) phosphateIn += qty;
@@ -778,6 +791,18 @@ export default function App() {
             else if (type.includes('hvcm') && type.includes('out')) hvcmOut += qty;
             else if (type.includes('rejection') && type.includes('out')) rejectionOutToMetalStore += qty;
             else if (type.includes('rejection') && !type.includes('in')) rejectionOutToMetalStore += qty;
+          } else if (activeTab === 'auto-clave') {
+            if (type.includes('prod') && type.includes('in')) autoClaveProdIn += qty;
+            else if (type.includes('mini') && type.includes('store') && type.includes('in')) autoClaveMiniStoreIn += qty;
+            else if (type.includes('metal') && type.includes('in')) autoClaveMetalIn += qty;
+            else if (type.includes('rework') && type.includes('in')) autoClaveReworkIn += qty;
+            else if (type.includes('metal') && type.includes('out')) autoClaveMetalOut += qty;
+            else if (type.includes('reject') && type.includes('rps')) autoClaveRejectionOut += qty;
+          } else if (activeTab === 'phosphate') {
+            if (type.includes('metal') && type.includes('in')) metalStoreIn += qty;
+            else if (type.includes('chemical') && type.includes('in')) chemicalStoreIn += qty;
+            else if (type.includes('bonding') && type.includes('out')) phosphateOutToBonding += qty;
+            else if (type.includes('reject') && type.includes('rps')) rejectionOutToRps += qty;
           } else if (activeTab === 'oil-seal') {
             if (type.includes('mold') && type.includes('in')) moldIn += qty;
             else if (type.includes('re work in') || type.includes('rework in')) reworkIn += qty;
@@ -785,6 +810,7 @@ export default function App() {
             else if (type.includes('rejection to rps out') || type.includes('rejection')) rejectionOut += qty;
           } else if (activeTab === 'extrusion') {
             if ((type.includes('prod') || type.includes('production')) && type.includes('in')) extrusionProdIn += qty;
+            else if (type.includes('re work in') || type.includes('rework in')) reworkIn += qty;
             else if (type.includes('metal') && type.includes('in')) extrusionMetalIn += qty;
             else if (type.includes('mini') && type.includes('store') && type.includes('in')) extrusionMiniStoreIn += qty;
             else if (type.includes('reject') && type.includes('rps')) rejectionOutToRps += qty;
@@ -862,14 +888,20 @@ export default function App() {
           }
         });
 
-        if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+        if (activeTab === 'bonding') {
           totalIn = opening + metalStoreIn + chemicalStoreIn + phosphateIn + moldIn;
           totalOut = injcMoldOut + oilSealOut + hvcmOut + rejectionOutToMetalStore;
+        } else if (activeTab === 'auto-clave') {
+          totalIn = opening + autoClaveProdIn + autoClaveMiniStoreIn + autoClaveMetalIn + autoClaveReworkIn;
+          totalOut = autoClaveRejectionOut + autoClaveMetalOut;
+        } else if (activeTab === 'phosphate') {
+          totalIn = opening + metalStoreIn + chemicalStoreIn;
+          totalOut = phosphateOutToBonding + rejectionOutToRps;
         } else if (activeTab === 'oil-seal') {
           totalIn = opening + moldIn + reworkIn;
           totalOut = qcOut + rejectionOut;
         } else if (activeTab === 'extrusion') {
-          totalIn = opening + extrusionProdIn + extrusionMetalIn + extrusionMiniStoreIn;
+          totalIn = opening + reworkIn + extrusionProdIn + extrusionMetalIn + extrusionMiniStoreIn;
           totalOut = rejectionOutToRps + fgOut + extrusionTrimOut + qcOut;
         } else if (activeTab === 'molding') {
           totalIn = 0;
@@ -896,9 +928,11 @@ export default function App() {
           jobId: jobId,
           openingStock: opening,
           vendorOpeningStock: vendorOpening,
+          autoClaveProdIn, autoClaveMiniStoreIn, autoClaveMetalIn, autoClaveRejectionOut, autoClaveMetalOut, autoClaveReworkIn,
+          fromBondingIn: 0, fromMoldingIn: 0, toQualityOut: 0, toFgStoreOut: 0, toMiniStoreOut: 0,
           moldIn, reworkIn, qcOut, rejectionOut,
           extrusionProdIn, extrusionMetalIn, extrusionMiniStoreIn, extrusionTrimOut,
-          chemicalStoreIn, phosphateIn, injcMoldOut, hvcmOut, rejectionOutToMetalStore,
+          chemicalStoreIn, phosphateIn, injcMoldOut, hvcmOut, rejectionOutToMetalStore, phosphateOutToBonding,
           fgReworkIn, metalStoreIn, customerRejectionIn, oilSealTrimmingIn, trimmingIn, extrusionIn,
           rejectionOutToRps, metalStoreOut, oilSealTrimmingOut, trimmingOut, fgOut, extrusionOut,
           trimmingVendorIn, trimmingQcReworkIn, trimmingMoldingIn, trimmingMetalStoreIn, trimmingExtrusionIn,
@@ -954,6 +988,10 @@ export default function App() {
       let extrusionProdIn = 0, extrusionMetalIn = 0, extrusionMiniStoreIn = 0, extrusionTrimOut = 0;
       // Bonding specific
       let chemicalStoreIn = 0, phosphateIn = 0, injcMoldOut = 0, hvcmOut = 0, rejectionOutToMetalStore = 0;
+      // Phosphate specific
+      let phosphateOutToBonding = 0;
+      // Auto Clave specific
+      let autoClaveProdIn = 0, autoClaveMiniStoreIn = 0, autoClaveMetalIn = 0, autoClaveRejectionOut = 0, autoClaveMetalOut = 0, autoClaveReworkIn = 0;
       // Quality specific
       let fgReworkIn = 0, metalStoreIn = 0, customerRejectionIn = 0, oilSealTrimmingIn = 0, trimmingIn = 0, extrusionIn = 0;
       let rejectionOutToRps = 0, metalStoreOut = 0, oilSealTrimmingOut = 0, trimmingOut = 0, fgOut = 0, extrusionOut = 0;
@@ -971,7 +1009,7 @@ export default function App() {
         const type = t.type.toLowerCase();
         const qty = t.quantity;
 
-        if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+        if (activeTab === 'bonding') {
           if (type.includes('metal') && type.includes('in')) metalStoreIn += qty;
           else if (type.includes('chemical') && type.includes('in')) chemicalStoreIn += qty;
           else if (type.includes('phosphate') && type.includes('in')) phosphateIn += qty;
@@ -980,6 +1018,18 @@ export default function App() {
           else if (type.includes('oil') && type.includes('seal') && type.includes('out')) oilSealOut += qty;
           else if (type.includes('hvcm') && type.includes('out')) hvcmOut += qty;
           else if (type.includes('rejection') && type.includes('out')) rejectionOutToMetalStore += qty;
+        } else if (activeTab === 'auto-clave') {
+          if (type.includes('prod') && type.includes('in')) autoClaveProdIn += qty;
+          else if (type.includes('mini') && type.includes('store') && type.includes('in')) autoClaveMiniStoreIn += qty;
+          else if (type.includes('metal') && type.includes('in')) autoClaveMetalIn += qty;
+          else if (type.includes('rework') && type.includes('in')) autoClaveReworkIn += qty;
+          else if (type.includes('metal') && type.includes('out')) autoClaveMetalOut += qty;
+          else if (type.includes('reject') && type.includes('rps')) autoClaveRejectionOut += qty;
+        } else if (activeTab === 'phosphate') {
+          if (type.includes('metal') && type.includes('in')) metalStoreIn += qty;
+          else if (type.includes('chemical') && type.includes('in')) chemicalStoreIn += qty;
+          else if (type.includes('bonding') && type.includes('out')) phosphateOutToBonding += qty;
+          else if (type.includes('reject') && type.includes('rps')) rejectionOutToRps += qty;
         } else if (activeTab === 'oil-seal') {
           if (type.includes('mold') && type.includes('in')) moldIn += qty;
           else if (type.includes('re work in') || type.includes('rework in')) reworkIn += qty;
@@ -987,6 +1037,7 @@ export default function App() {
           else if (type.includes('rejection to rps out') || type.includes('rejection')) rejectionOut += qty;
         } else if (activeTab === 'extrusion') {
           if ((type.includes('prod') || type.includes('production')) && type.includes('in')) { extrusionProdIn += qty; totalIn += qty; }
+          else if (type.includes('re work in') || type.includes('rework in')) { reworkIn += qty; totalIn += qty; }
           else if (type.includes('metal') && type.includes('in')) { extrusionMetalIn += qty; totalIn += qty; }
           else if (type.includes('mini') && type.includes('store') && type.includes('in')) { extrusionMiniStoreIn += qty; totalIn += qty; }
           else if (type.includes('reject') && type.includes('rps')) { rejectionOutToRps += qty; totalOut += qty; }
@@ -1068,14 +1119,20 @@ export default function App() {
         }
       });
 
-      if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+      if (activeTab === 'bonding') {
         totalIn = opening + metalStoreIn + chemicalStoreIn + phosphateIn + moldIn;
         totalOut = injcMoldOut + oilSealOut + hvcmOut + rejectionOutToMetalStore;
+      } else if (activeTab === 'auto-clave') {
+        totalIn = opening + autoClaveProdIn + autoClaveMiniStoreIn + autoClaveMetalIn + autoClaveReworkIn;
+        totalOut = autoClaveRejectionOut + autoClaveMetalOut;
+      } else if (activeTab === 'phosphate') {
+        totalIn = opening + metalStoreIn + chemicalStoreIn;
+        totalOut = phosphateOutToBonding + rejectionOutToRps;
       } else if (activeTab === 'oil-seal') {
         totalIn = opening + moldIn + reworkIn;
         totalOut = qcOut + rejectionOut;
       } else if (activeTab === 'extrusion') {
-        totalIn = opening + extrusionProdIn + extrusionMetalIn + extrusionMiniStoreIn;
+        totalIn = opening + reworkIn + extrusionProdIn + extrusionMetalIn + extrusionMiniStoreIn;
         totalOut = rejectionOutToRps + fgOut + extrusionTrimOut + qcOut;
       } else if (activeTab === 'molding') {
         totalIn = 0;
@@ -1106,9 +1163,11 @@ export default function App() {
         jobId,
         openingStock: opening || 0,
         vendorOpeningStock: vendorOpening,
+        autoClaveProdIn, autoClaveMiniStoreIn, autoClaveMetalIn, autoClaveRejectionOut, autoClaveMetalOut, autoClaveReworkIn,
+        fromBondingIn: 0, fromMoldingIn: 0, toQualityOut: 0, toFgStoreOut: 0, toMiniStoreOut: 0,
         moldIn, reworkIn, qcOut, rejectionOut,
         extrusionProdIn, extrusionMetalIn, extrusionMiniStoreIn, extrusionTrimOut,
-        chemicalStoreIn, phosphateIn, injcMoldOut, hvcmOut, rejectionOutToMetalStore,
+        chemicalStoreIn, phosphateIn, injcMoldOut, hvcmOut, rejectionOutToMetalStore, phosphateOutToBonding,
         fgReworkIn, metalStoreIn, customerRejectionIn, oilSealTrimmingIn, trimmingIn, extrusionIn,
         rejectionOutToRps, metalStoreOut, oilSealTrimmingOut, trimmingOut, fgOut, extrusionOut,
         trimmingVendorIn, trimmingQcReworkIn, trimmingMoldingIn, trimmingMetalStoreIn, trimmingExtrusionIn,
@@ -1201,6 +1260,8 @@ export default function App() {
         rejectionOutToRps: 0, metalStoreOut: 0, oilSealTrimmingOut: 0, trimmingOut: 0, fgOut: 0, extrusionOut: 0,
         trimmingVendorIn: 0, trimmingQcReworkIn: 0, trimmingMoldingIn: 0, trimmingMetalStoreIn: 0, trimmingExtrusionIn: 0,
         trimmingQcOut: 0, trimmingVendorOut: 0, trimmingRejectionOutToRps: 0,
+        autoClaveProdIn: 0, autoClaveMiniStoreIn: 0, autoClaveMetalIn: 0, autoClaveRejectionOut: 0, autoClaveMetalOut: 0, autoClaveReworkIn: 0,
+        phosphateOutToBonding: 0,
         qcIn: 0, autoClaveIn: 0, qcReworkOut: 0,
         totalIn: 0, totalOut: 0
       };
@@ -1224,7 +1285,7 @@ export default function App() {
         onlyDayTrans.forEach(t => {
           const type = t.type.toLowerCase();
           const qty = t.quantity;
-          if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+          if (activeTab === 'bonding') {
             const type = t.type.toLowerCase();
             const qty = t.quantity;
             if (type.includes('metal') && type.includes('in')) dayTotals.metalStoreIn += qty;
@@ -1236,6 +1297,22 @@ export default function App() {
             else if (type.includes('hvcm') && type.includes('out')) dayTotals.hvcmOut += qty;
             else if (type.includes('rejection') && type.includes('out')) dayTotals.rejectionOutToMetalStore += qty;
             else if (type.includes('rejection') && !type.includes('in')) dayTotals.rejectionOutToMetalStore += qty;
+          } else if (activeTab === 'auto-clave') {
+            const type = t.type.toLowerCase();
+            const qty = t.quantity;
+            if (type.includes('prod') && type.includes('in')) dayTotals.autoClaveProdIn += qty;
+            else if (type.includes('mini') && type.includes('store') && type.includes('in')) dayTotals.autoClaveMiniStoreIn += qty;
+            else if (type.includes('metal') && type.includes('in')) dayTotals.autoClaveMetalIn += qty;
+            else if (type.includes('rework') && type.includes('in')) dayTotals.autoClaveReworkIn += qty;
+            else if (type.includes('metal') && type.includes('out')) dayTotals.autoClaveMetalOut += qty;
+            else if (type.includes('reject') && type.includes('rps')) dayTotals.autoClaveRejectionOut += qty;
+          } else if (activeTab === 'phosphate') {
+            const type = t.type.toLowerCase();
+            const qty = t.quantity;
+            if (type.includes('metal') && type.includes('in')) dayTotals.metalStoreIn += qty;
+            else if (type.includes('chemical') && type.includes('in')) dayTotals.chemicalStoreIn += qty;
+            else if (type.includes('bonding') && type.includes('out')) dayTotals.phosphateOutToBonding += qty;
+            else if (type.includes('reject') && type.includes('rps')) dayTotals.rejectionOutToRps += qty;
           } else if (activeTab === 'oil-seal') {
             if (type.includes('mold') && type.includes('in')) dayTotals.moldIn += qty;
             else if (type.includes('re work in') || type.includes('rework in')) dayTotals.reworkIn += qty;
@@ -1243,6 +1320,7 @@ export default function App() {
             else if (type.includes('rejection to rps out') || type.includes('rejection')) dayTotals.rejectionOut += qty;
           } else if (activeTab === 'extrusion') {
             if ((type.includes('prod') || type.includes('production')) && type.includes('in')) { dayTotals.extrusionProdIn += qty; dayTotals.totalIn += qty; }
+            else if (type.includes('re work in') || type.includes('rework in')) { dayTotals.reworkIn += qty; dayTotals.totalIn += qty; }
             else if (type.includes('metal') && type.includes('in')) { dayTotals.extrusionMetalIn += qty; dayTotals.totalIn += qty; }
             else if (type.includes('mini') && type.includes('store') && type.includes('in')) { dayTotals.extrusionMiniStoreIn += qty; dayTotals.totalIn += qty; }
             else if (type.includes('reject') && type.includes('rps')) { dayTotals.rejectionOutToRps += qty; dayTotals.totalOut += qty; }
@@ -1322,14 +1400,20 @@ export default function App() {
         });
       });
 
-      if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+      if (activeTab === 'bonding') {
         dayTotals.totalIn = dayTotals.metalStoreIn + dayTotals.chemicalStoreIn + dayTotals.phosphateIn + dayTotals.moldIn;
         dayTotals.totalOut = dayTotals.injcMoldOut + dayTotals.oilSealOut + dayTotals.hvcmOut + dayTotals.rejectionOutToMetalStore;
+      } else if (activeTab === 'auto-clave') {
+        dayTotals.totalIn = dayTotals.autoClaveProdIn + dayTotals.autoClaveMiniStoreIn + dayTotals.autoClaveMetalIn + dayTotals.autoClaveReworkIn;
+        dayTotals.totalOut = dayTotals.autoClaveRejectionOut + dayTotals.autoClaveMetalOut;
+      } else if (activeTab === 'phosphate') {
+        dayTotals.totalIn = dayTotals.metalStoreIn + dayTotals.chemicalStoreIn;
+        dayTotals.totalOut = dayTotals.phosphateOutToBonding + dayTotals.rejectionOutToRps;
       } else if (activeTab === 'oil-seal') {
         dayTotals.totalIn = dayTotals.moldIn + dayTotals.reworkIn;
         dayTotals.totalOut = dayTotals.qcOut + dayTotals.rejectionOut;
       } else if (activeTab === 'extrusion') {
-        dayTotals.totalIn = dayTotals.extrusionProdIn + dayTotals.extrusionMetalIn + dayTotals.extrusionMiniStoreIn;
+        dayTotals.totalIn = dayTotals.reworkIn + dayTotals.extrusionProdIn + dayTotals.extrusionMetalIn + dayTotals.extrusionMiniStoreIn;
         dayTotals.totalOut = dayTotals.rejectionOutToRps + dayTotals.fgOut + dayTotals.extrusionTrimOut + dayTotals.qcOut;
       } else if (activeTab === 'molding') {
         dayTotals.totalIn = 0;
@@ -1446,6 +1530,15 @@ export default function App() {
       injcMoldOut: acc.injcMoldOut + item.injcMoldOut,
       hvcmOut: acc.hvcmOut + item.hvcmOut,
       rejectionOutToMetalStore: acc.rejectionOutToMetalStore + item.rejectionOutToMetalStore,
+      // Phosphate
+      phosphateOutToBonding: acc.phosphateOutToBonding + (item.phosphateOutToBonding || 0),
+      // Auto Clave
+      autoClaveProdIn: (acc.autoClaveProdIn || 0) + (item.autoClaveProdIn || 0),
+      autoClaveMiniStoreIn: (acc.autoClaveMiniStoreIn || 0) + (item.autoClaveMiniStoreIn || 0),
+      autoClaveMetalIn: (acc.autoClaveMetalIn || 0) + (item.autoClaveMetalIn || 0),
+      autoClaveReworkIn: (acc.autoClaveReworkIn || 0) + (item.autoClaveReworkIn || 0),
+      autoClaveRejectionOut: (acc.autoClaveRejectionOut || 0) + (item.autoClaveRejectionOut || 0),
+      autoClaveMetalOut: (acc.autoClaveMetalOut || 0) + (item.autoClaveMetalOut || 0),
       // Quality
       fgReworkIn: acc.fgReworkIn + item.fgReworkIn,
       metalStoreIn: acc.metalStoreIn + item.metalStoreIn,
@@ -1498,9 +1591,11 @@ export default function App() {
       openingStock: 0,
       moldIn: 0, reworkIn: 0, qcOut: 0, rejectionOut: 0,
       chemicalStoreIn: 0, phosphateIn: 0, injcMoldOut: 0, hvcmOut: 0, rejectionOutToMetalStore: 0,
+      phosphateOutToBonding: 0,
       fgReworkIn: 0, metalStoreIn: 0, customerRejectionIn: 0, oilSealTrimmingIn: 0, trimmingIn: 0,
       compoundIn: 0, moldReturnIn: 0, vendorOut: 0, injectOut: 0, oilSealOut: 0, moldOut: 0, autoClaveOut: 0, labOut: 0,
       rejectionOutToRps: 0, metalStoreOut: 0, oilSealTrimmingOut: 0, trimmingOut: 0, fgOut: 0, extrusionOut: 0,
+      autoClaveProdIn: 0, autoClaveMiniStoreIn: 0, autoClaveMetalIn: 0, autoClaveReworkIn: 0, autoClaveRejectionOut: 0, autoClaveMetalOut: 0,
       trimmingVendorIn: 0, trimmingQcReworkIn: 0, trimmingMoldingIn: 0, trimmingMetalStoreIn: 0, trimmingExtrusionIn: 0,
       trimmingQcOut: 0, trimmingVendorOut: 0, trimmingRejectionOutToRps: 0,
       qcIn: 0, autoClaveIn: 0, qcReworkOut: 0,
@@ -1681,15 +1776,19 @@ export default function App() {
     count += 1; // Current Stock
     if (hasAnyNextMonthStock) count += 1;
 
-    const inCols = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? ['metalStoreIn', 'chemicalStoreIn', 'phosphateIn', 'moldIn'] :
+    const inCols = activeTab === 'bonding' ? ['metalStoreIn', 'chemicalStoreIn', 'phosphateIn', 'moldIn'] :
+                   activeTab === 'auto-clave' ? ['autoClaveProdIn', 'autoClaveMiniStoreIn', 'autoClaveMetalIn', 'autoClaveReworkIn'] :
+                   activeTab === 'phosphate' ? ['metalStoreIn', 'chemicalStoreIn'] :
                    activeTab === 'oil-seal' || activeTab === 'molding' ? ['moldIn', 'reworkIn'] : 
-                   activeTab === 'extrusion' ? ['extrusionProdIn', 'extrusionMetalIn', 'extrusionMiniStoreIn'] :
+                   activeTab === 'extrusion' ? ['reworkIn', 'extrusionProdIn', 'extrusionMetalIn', 'extrusionMiniStoreIn'] :
                    activeTab === 'quality' ? ['fgReworkIn', 'metalStoreIn', 'customerRejectionIn', 'oilSealTrimmingIn', 'trimmingIn', 'extrusionIn'] :
                    activeTab === 'mini-store' ? ['compoundIn', 'moldReturnIn'] :
                    (activeTab === 'fg-store') ? ['customerRejectionIn', 'qcIn', 'reworkIn', 'autoClaveIn'] :
                    ['trimmingVendorIn', 'trimmingQcReworkIn', 'trimmingMoldingIn', 'trimmingMetalStoreIn', 'trimmingExtrusionIn'];
     
-    const outCols = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? ['injcMoldOut', 'oilSealOut', 'hvcmOut', 'rejectionOutToMetalStore'] :
+    const outCols = activeTab === 'bonding' ? ['injcMoldOut', 'oilSealOut', 'hvcmOut', 'rejectionOutToMetalStore'] :
+                    activeTab === 'auto-clave' ? ['autoClaveRejectionOut', 'autoClaveMetalOut'] :
+                    activeTab === 'phosphate' ? ['phosphateOutToBonding', 'rejectionOutToRps'] :
                     activeTab === 'oil-seal' || activeTab === 'molding' ? ['qcOut', 'rejectionOut'] :
                     activeTab === 'extrusion' ? ['rejectionOutToRps', 'fgOut', 'extrusionTrimOut', 'qcOut'] :
                     activeTab === 'quality' ? ['rejectionOutToRps', 'metalStoreOut', 'oilSealTrimmingOut', 'trimmingOut', 'fgOut', 'extrusionOut'] :
@@ -1812,12 +1911,16 @@ export default function App() {
       return aDate.getTime() - bDate.getTime();
     });
 
-    const headers = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ?
+    const headers = (activeTab === 'bonding') ?
       ['DATE', 'OPENING STOCK', 'METAL STORE IN', 'CHEMICAL STORE IN', 'PHOSPHATE IN', 'MOLD IN', 'TOTAL IN', 'INJC MOLD OUT', 'OIL SEAL OUT', 'HVCM OUT', 'REJECTION OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
+      activeTab === 'auto-clave' ?
+      ['DATE', 'OPENING STOCK', 'PROD IN', 'MINI STORE IN', 'METAL IN', 'REWORK IN', 'TOTAL IN', 'REJECTION OUT', 'METAL OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
+      activeTab === 'phosphate' ?
+      ['DATE', 'OPENING STOCK', 'METAL STORE IN', 'CHEMICAL STORE IN', 'TOTAL IN', 'PHOSPHATE OUT TO BONDING', 'REJECTION OUT TO RPS', 'TOTAL OUT', 'CURRENT STOCK'] :
       activeTab === 'oil-seal' ? 
       ['DATE', 'OPENING STOCK', 'MOLD IN', 'REWORK IN', 'TOTAL IN', 'QC OUT', 'REJECTION OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
       activeTab === 'extrusion' ?
-      ['DATE', 'OPENING STOCK', 'PROD IN', 'METAL IN EXTRUS', 'MINI STORE IN EXTRUS', 'TOTAL IN', 'REJECTION OUT TO RPS', 'FG OUT', 'TRIM OUT', 'QC OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
+      ['DATE', 'OPENING STOCK', 'REWORK IN', 'PROD IN', 'METAL IN EXTRUS', 'MINI STORE IN EXTRUS', 'TOTAL IN', 'REJECTION OUT TO RPS', 'FG OUT', 'TRIM OUT', 'QC OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
       activeTab === 'molding' ?
       ['DATE', 'REJECTION OUT TO RPS', 'OIL SEAL TRIMMING OUT', 'TRIMMING OUT', 'TOTAL OUT'] :
       activeTab === 'quality' ?
@@ -1843,21 +1946,31 @@ export default function App() {
 
       let rowData: any[] = [dateStr, openingStock];
       
-      if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+      if (activeTab === 'bonding') {
         const totalInFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(5)}${rowNum})` };
         const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(7)}${rowNum}:${XLSX.utils.encode_col(10)}${rowNum})` };
         const currentStockFormula = { f: `${XLSX.utils.encode_col(6)}${rowNum}-${XLSX.utils.encode_col(11)}${rowNum}` };
         rowData.push(row.metalStoreIn, row.chemicalStoreIn, row.phosphateIn, row.moldIn, totalInFormula, row.injcMoldOut, row.oilSealOut, row.hvcmOut, row.rejectionOutToMetalStore, totalOutFormula, currentStockFormula);
+      } else if (activeTab === 'auto-clave') {
+        const totalInFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(5)}${rowNum})` };
+        const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(7)}${rowNum}:${XLSX.utils.encode_col(8)}${rowNum})` };
+        const currentStockFormula = { f: `${XLSX.utils.encode_col(6)}${rowNum}-${XLSX.utils.encode_col(9)}${rowNum}` };
+        rowData.push(row.autoClaveProdIn, row.autoClaveMiniStoreIn, row.autoClaveMetalIn, row.autoClaveReworkIn, totalInFormula, row.autoClaveRejectionOut, row.autoClaveMetalOut, totalOutFormula, currentStockFormula);
+      } else if (activeTab === 'phosphate') {
+        const totalInFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(3)}${rowNum})` };
+        const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(5)}${rowNum}:${XLSX.utils.encode_col(6)}${rowNum})` };
+        const currentStockFormula = { f: `${XLSX.utils.encode_col(4)}${rowNum}-${XLSX.utils.encode_col(7)}${rowNum}` };
+        rowData.push(row.metalStoreIn, row.chemicalStoreIn, totalInFormula, row.phosphateOutToBonding, row.rejectionOutToRps, totalOutFormula, currentStockFormula);
       } else if (activeTab === 'oil-seal') {
         const totalInFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(3)}${rowNum})` };
         const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(5)}${rowNum}:${XLSX.utils.encode_col(6)}${rowNum})` };
         const currentStockFormula = { f: `${XLSX.utils.encode_col(4)}${rowNum}-${XLSX.utils.encode_col(7)}${rowNum}` };
         rowData.push(row.moldIn, row.reworkIn, totalInFormula, row.qcOut, row.rejectionOut, totalOutFormula, currentStockFormula);
       } else if (activeTab === 'extrusion') {
-        const totalInFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(4)}${rowNum})` };
-        const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(6)}${rowNum}:${XLSX.utils.encode_col(9)}${rowNum})` };
-        const currentStockFormula = { f: `${XLSX.utils.encode_col(5)}${rowNum}-${XLSX.utils.encode_col(10)}${rowNum}` };
-        rowData.push(row.extrusionProdIn, row.extrusionMetalIn, row.extrusionMiniStoreIn, totalInFormula, row.rejectionOutToRps, row.fgOut, row.extrusionTrimOut, row.qcOut, totalOutFormula, currentStockFormula);
+        const totalInFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(5)}${rowNum})` };
+        const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(7)}${rowNum}:${XLSX.utils.encode_col(10)}${rowNum})` };
+        const currentStockFormula = { f: `${XLSX.utils.encode_col(6)}${rowNum}-${XLSX.utils.encode_col(11)}${rowNum}` };
+        rowData.push(row.reworkIn, row.extrusionProdIn, row.extrusionMetalIn, row.extrusionMiniStoreIn, totalInFormula, row.rejectionOutToRps, row.fgOut, row.extrusionTrimOut, row.qcOut, totalOutFormula, currentStockFormula);
       } else if (activeTab === 'molding') {
         const totalOutFormula = { f: `SUM(${XLSX.utils.encode_col(1)}${rowNum}:${XLSX.utils.encode_col(3)}${rowNum})` };
         rowData = [dateStr, row.rejectionOutToRps, row.oilSealTrimmingOut, row.trimmingOut, totalOutFormula];
@@ -1931,8 +2044,8 @@ export default function App() {
           worksheet[addr].s.font = { bold: true };
           worksheet[addr].s.fill = { fgColor: { rgb: R === 1 ? 'F8F9FA' : 'F1F3F5' } };
           
-          const totalInCol = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? 6 : (activeTab === 'oil-seal' || activeTab === 'extrusion') ? 4 : activeTab === 'molding' ? -1 : activeTab === 'trimming' ? 7 : activeTab === 'quality' ? 8 : activeTab === 'mini-store' ? 4 : (activeTab === 'fg-store' ? 5 : 8);
-          const totalOutCol = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? 11 : (activeTab === 'oil-seal' || activeTab === 'extrusion') ? 7 : activeTab === 'molding' ? 4 : activeTab === 'trimming' ? 11 : activeTab === 'quality' ? 15 : activeTab === 'mini-store' ? 13 : (activeTab === 'fg-store' ? 10 : 15);
+          const totalInCol = activeTab === 'bonding' ? 6 : activeTab === 'phosphate' ? 4 : activeTab === 'auto-clave' ? 6 : activeTab === 'extrusion' ? 5 : activeTab === 'oil-seal' ? 4 : activeTab === 'molding' ? -1 : activeTab === 'trimming' ? 7 : activeTab === 'quality' ? 8 : activeTab === 'mini-store' ? 4 : (activeTab === 'fg-store' ? 5 : 8);
+          const totalOutCol = activeTab === 'bonding' ? 11 : activeTab === 'phosphate' ? 7 : activeTab === 'auto-clave' ? 9 : activeTab === 'extrusion' ? 10 : activeTab === 'oil-seal' ? 7 : activeTab === 'molding' ? 4 : activeTab === 'trimming' ? 11 : activeTab === 'quality' ? 15 : activeTab === 'mini-store' ? 13 : (activeTab === 'fg-store' ? 10 : 15);
           const currentStockCol = activeTab === 'molding' ? -1 : headers.length - 1;
           
           if (C === 1) worksheet[addr].s.font.color = { rgb: 'E67E22' }; // Opening
@@ -1999,7 +2112,7 @@ export default function App() {
     const title = `${tabTitle} ${reportType} - ${dateInfo}`;
 
     // Row 3: Headers
-    const headers = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? [
+    const headers = (activeTab === 'bonding') ? [
       col1Header, 
       col2Header,
       'TOTAL OPENING STOCK', 
@@ -2012,6 +2125,32 @@ export default function App() {
       'OIL SEAL OUT',
       'HVCM OUT',
       'REJECTION OUT',
+      'TOTAL OUT',
+      'CURRENT STOCK',
+      ...(hasAnyNextMonthStock ? ['PHYSICAL STOCK'] : [])
+    ] : activeTab === 'auto-clave' ? [
+      col1Header, 
+      col2Header,
+      'TOTAL OPENING STOCK', 
+      'PROD IN',
+      'MINI STORE IN',
+      'METAL IN',
+      'REWORK IN',
+      'TOTAL IN',
+      'REJECTION OUT',
+      'METAL OUT',
+      'TOTAL OUT',
+      'CURRENT STOCK',
+      ...(hasAnyNextMonthStock ? ['PHYSICAL STOCK'] : [])
+    ] : activeTab === 'phosphate' ? [
+      col1Header, 
+      col2Header,
+      'TOTAL OPENING STOCK', 
+      'METAL STORE IN',
+      'CHEMICAL STORE IN',
+      'TOTAL IN',
+      'PHOSPHATE OUT TO BONDING',
+      'REJECTION OUT TO RPS',
       'TOTAL OUT',
       'CURRENT STOCK',
       ...(hasAnyNextMonthStock ? ['PHYSICAL STOCK'] : [])
@@ -2031,6 +2170,7 @@ export default function App() {
       col1Header, 
       col2Header,
       'TOTAL OPENING STOCK', 
+      'REWORK IN', 
       'PROD IN',
       'METAL IN EXTRUS',
       'MINI STORE IN EXTRUS',
@@ -2149,7 +2289,7 @@ export default function App() {
       const col1Val = showJobSummary ? s.jobId : s.itemId;
       const col2Val = showJobSummary ? s.partName : s.jobId;
 
-      if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+      if (activeTab === 'bonding') {
         return [
           col1Val,
           col2Val,
@@ -2165,6 +2305,36 @@ export default function App() {
           s.rejectionOutToMetalStore,
           { f: `I${rowNum}+J${rowNum}+K${rowNum}+L${rowNum}` }, // Total OUT
           { f: `H${rowNum}-M${rowNum}` }, // Current Stock
+          ...(hasAnyNextMonthStock ? [s.nextMonthOpeningStock] : [])
+        ];
+      } else if (activeTab === 'auto-clave') {
+        return [
+          col1Val,
+          col2Val,
+          s.openingStock,
+          s.autoClaveProdIn,
+          s.autoClaveMiniStoreIn,
+          s.autoClaveMetalIn,
+          s.autoClaveReworkIn,
+          { f: `C${rowNum}+D${rowNum}+E${rowNum}+F${rowNum}+G${rowNum}` }, // Total IN
+          s.autoClaveRejectionOut,
+          s.autoClaveMetalOut,
+          { f: `I${rowNum}+J${rowNum}` }, // Total OUT
+          { f: `H${rowNum}-K${rowNum}` }, // Current Stock
+          ...(hasAnyNextMonthStock ? [s.nextMonthOpeningStock] : [])
+        ];
+      } else if (activeTab === 'phosphate') {
+        return [
+          col1Val,
+          col2Val,
+          s.openingStock,
+          s.metalStoreIn,
+          s.chemicalStoreIn,
+          { f: `C${rowNum}+D${rowNum}+E${rowNum}` }, // Total IN
+          s.phosphateOutToBonding,
+          s.rejectionOutToRps,
+          { f: `G${rowNum}+H${rowNum}` }, // Total OUT
+          { f: `F${rowNum}-I${rowNum}` }, // Current Stock
           ...(hasAnyNextMonthStock ? [s.nextMonthOpeningStock] : [])
         ];
       } else if (activeTab === 'oil-seal') {
@@ -2186,16 +2356,17 @@ export default function App() {
           col1Val,
           col2Val,
           s.openingStock,
+          s.reworkIn,
           s.extrusionProdIn,
           s.extrusionMetalIn,
           s.extrusionMiniStoreIn,
-          { f: `D${rowNum}+E${rowNum}+F${rowNum}` }, // Total IN
+          { f: `C${rowNum}+D${rowNum}+E${rowNum}+F${rowNum}+G${rowNum}` }, // Total IN
           s.rejectionOutToRps,
           s.fgOut,
           s.extrusionTrimOut,
           s.qcOut,
-          { f: `H${rowNum}+I${rowNum}+J${rowNum}+K${rowNum}` }, // Total OUT
-          { f: `C${rowNum}+G${rowNum}-L${rowNum}` }, // Current Stock
+          { f: `I${rowNum}+J${rowNum}+K${rowNum}+L${rowNum}` }, // Total OUT
+          { f: `H${rowNum}-M${rowNum}` }, // Current Stock
           ...(hasAnyNextMonthStock ? [s.nextMonthOpeningStock] : [])
         ];
       } else if (activeTab === 'molding') {
@@ -2332,18 +2503,18 @@ export default function App() {
           let currentStockCol = -1;
 
           if (activeTab === 'oil-seal' || activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave' || activeTab === 'molding') {
-            totalInCol = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? 7 : 5;
-            totalOutCol = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? 12 : 8;
-            currentStockCol = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? 13 : 9;
+            totalInCol = activeTab === 'phosphate' ? 5 : activeTab === 'bonding' ? 7 : activeTab === 'auto-clave' ? 7 : 5;
+            totalOutCol = activeTab === 'phosphate' ? 8 : activeTab === 'bonding' ? 12 : activeTab === 'auto-clave' ? 10 : 8;
+            currentStockCol = activeTab === 'phosphate' ? 9 : activeTab === 'bonding' ? 13 : activeTab === 'auto-clave' ? 11 : 9;
             if (activeTab === 'molding') {
               totalInCol = -1;
               totalOutCol = 5;
               currentStockCol = -1;
             }
           } else if (activeTab === 'extrusion') {
-            totalInCol = 6;
-            totalOutCol = 11;
-            currentStockCol = 12;
+            totalInCol = 7;
+            totalOutCol = 12;
+            currentStockCol = 13;
           } else if (activeTab === 'trimming') {
             totalInCol = 9;
             totalOutCol = 13;
@@ -2411,6 +2582,7 @@ export default function App() {
         { wch: 40 }, // Part No. & Name
         { wch: 15 }, // Job #
         { wch: 18 }, // Total Opening Stock
+        { wch: 15 }, // Rework IN
         { wch: 15 }, // Prod IN
         { wch: 15 }, // Metal IN Extrus
         { wch: 15 }, // Mini Store IN Extrus
@@ -2601,8 +2773,12 @@ export default function App() {
                       'Trimming';
 
     // 2. Define Group Headers based on Tab
-    const groupHeaders = (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ?
+    const groupHeaders = (activeTab === 'bonding') ?
       ['OPENING STOCK', 'METAL STORE IN', 'CHEMICAL STORE IN', 'PHOSPHATE IN', 'MOLD IN', 'TOTAL IN', 'INJC MOLD OUT', 'OIL SEAL OUT', 'HVCM OUT', 'REJECTION OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
+      activeTab === 'auto-clave' ?
+      ['OPENING STOCK', 'PROD IN', 'MINI STORE IN', 'METAL IN', 'REWORK IN', 'TOTAL IN', 'REJECTION OUT', 'METAL OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
+      activeTab === 'phosphate' ?
+      ['OPENING STOCK', 'METAL STORE IN', 'CHEMICAL STORE IN', 'TOTAL IN', 'PHOSPHATE OUT TO BONDING', 'REJECTION OUT TO RPS', 'TOTAL OUT', 'CURRENT STOCK'] :
       activeTab === 'oil-seal' || activeTab === 'extrusion' ? 
       ['OPENING STOCK', 'MOLD IN', 'REWORK IN', 'TOTAL IN', 'QC OUT', 'REJECTION OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
       activeTab === 'molding' ?
@@ -2654,12 +2830,14 @@ export default function App() {
       let qcIn = 0, autoClaveIn = 0, qcReworkOut = 0;
       let compoundIn = 0, moldReturnIn = 0, vendorOut = 0, injectOut = 0, oilSealOut = 0, moldOut = 0, autoClaveOut = 0, labOut = 0;
       let chemicalStoreIn = 0, phosphateIn = 0, injcMoldOut = 0, hvcmOut = 0, rejectionOutToMetalStore = 0;
+      let autoClaveProdIn = 0, autoClaveMiniStoreIn = 0, autoClaveMetalIn = 0, autoClaveReworkIn = 0, autoClaveRejectionOut = 0, autoClaveMetalOut = 0;
+      let phosphateOutToBonding = 0;
       let totalIn = 0, totalOut = 0;
 
       transList.forEach(t => {
         const type = t.type.toLowerCase();
         const qty = t.quantity;
-        if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+        if (activeTab === 'bonding') {
           if (type.includes('metal') && type.includes('in')) metalStoreIn += qty;
           else if (type.includes('chemical') && type.includes('in')) chemicalStoreIn += qty;
           else if (type.includes('phosphate') && type.includes('in')) phosphateIn += qty;
@@ -2669,6 +2847,18 @@ export default function App() {
           else if (type.includes('hvcm') && type.includes('out')) hvcmOut += qty;
           else if (type.includes('rejection') && type.includes('out')) rejectionOutToMetalStore += qty;
           else if (type.includes('rejection') && !type.includes('in')) rejectionOutToMetalStore += qty;
+        } else if (activeTab === 'auto-clave') {
+          if (type.includes('prod') && type.includes('in')) autoClaveProdIn += qty;
+          else if (type.includes('mini') && type.includes('store') && type.includes('in')) autoClaveMiniStoreIn += qty;
+          else if (type.includes('metal') && type.includes('in')) autoClaveMetalIn += qty;
+          else if (type.includes('rework') && type.includes('in')) autoClaveReworkIn += qty;
+          else if (type.includes('metal') && type.includes('out')) autoClaveMetalOut += qty;
+          else if (type.includes('reject') && type.includes('rps')) autoClaveRejectionOut += qty;
+        } else if (activeTab === 'phosphate') {
+          if (type.includes('metal') && type.includes('in')) metalStoreIn += qty;
+          else if (type.includes('chemical') && type.includes('in')) chemicalStoreIn += qty;
+          else if (type.includes('bonding') && type.includes('out')) phosphateOutToBonding += qty;
+          else if (type.includes('reject') && type.includes('rps')) rejectionOutToRps += qty;
         } else if (activeTab === 'oil-seal' || activeTab === 'extrusion') {
           if (type.includes('mold') && type.includes('in')) moldIn += qty;
           else if (type.includes('re work in') || type.includes('rework in')) reworkIn += qty;
@@ -2743,9 +2933,15 @@ export default function App() {
         }
       });
 
-      if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+      if (activeTab === 'bonding') {
         totalIn = metalStoreIn + chemicalStoreIn + phosphateIn + moldIn;
         totalOut = injcMoldOut + oilSealOut + hvcmOut + rejectionOutToMetalStore;
+      } else if (activeTab === 'auto-clave') {
+        totalIn = autoClaveProdIn + autoClaveMiniStoreIn + autoClaveMetalIn + autoClaveReworkIn;
+        totalOut = autoClaveRejectionOut + autoClaveMetalOut;
+      } else if (activeTab === 'phosphate') {
+        totalIn = metalStoreIn + chemicalStoreIn;
+        totalOut = phosphateOutToBonding + rejectionOutToRps;
       } else if (activeTab === 'oil-seal' || activeTab === 'extrusion') {
         totalIn = moldIn + reworkIn;
         totalOut = qcOut + rejectionOut;
@@ -2774,6 +2970,8 @@ export default function App() {
         qcIn, autoClaveIn, qcReworkOut,
         compoundIn, moldReturnIn, vendorOut, injectOut, oilSealOut, moldOut, autoClaveOut, labOut,
         chemicalStoreIn, phosphateIn, injcMoldOut, hvcmOut, rejectionOutToMetalStore,
+        autoClaveProdIn, autoClaveMiniStoreIn, autoClaveMetalIn, autoClaveReworkIn, autoClaveRejectionOut, autoClaveMetalOut,
+        phosphateOutToBonding,
         totalIn, totalOut
       };
     };
@@ -2842,7 +3040,7 @@ export default function App() {
         return { f: dailyCols.join('+') };
       };
 
-      if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+      if (activeTab === 'bonding') {
         row.push(
           opening, 
           getSumFormula(1), // Metal Store In
@@ -2856,6 +3054,30 @@ export default function App() {
           getSumFormula(9), // Rejection Out
           { f: `${XLSX.utils.encode_col(8)}${rowNum}+${XLSX.utils.encode_col(9)}${rowNum}+${XLSX.utils.encode_col(10)}${rowNum}+${XLSX.utils.encode_col(11)}${rowNum}` }, // Total OUT (I+J+K+L)
           { f: `${XLSX.utils.encode_col(7)}${rowNum}-${XLSX.utils.encode_col(12)}${rowNum}` }  // Current Stock (H-M)
+        );
+      } else if (activeTab === 'auto-clave') {
+        row.push(
+          opening, 
+          getSumFormula(1), // Prod In
+          getSumFormula(2), // Mini Store In
+          getSumFormula(3), // Metal In
+          getSumFormula(4), // Rework In
+          { f: `${XLSX.utils.encode_col(2)}${rowNum}+${XLSX.utils.encode_col(3)}${rowNum}+${XLSX.utils.encode_col(4)}${rowNum}+${XLSX.utils.encode_col(5)}${rowNum}+${XLSX.utils.encode_col(6)}${rowNum}` }, // Total IN
+          getSumFormula(6), // Rejection Out
+          getSumFormula(7), // Metal Out
+          { f: `${XLSX.utils.encode_col(8)}${rowNum}+${XLSX.utils.encode_col(9)}${rowNum}` }, // Total OUT
+          { f: `${XLSX.utils.encode_col(7)}${rowNum}-${XLSX.utils.encode_col(10)}${rowNum}` }  // Current Stock
+        );
+      } else if (activeTab === 'phosphate') {
+        row.push(
+          opening,
+          getSumFormula(1), // Metal Store In
+          getSumFormula(2), // Chemical Store In
+          { f: `${XLSX.utils.encode_col(2)}${rowNum}+${XLSX.utils.encode_col(3)}${rowNum}+${XLSX.utils.encode_col(4)}${rowNum}` }, // Total IN
+          getSumFormula(4), // Phosphate Out To Bonding
+          getSumFormula(5), // Rejection Out To RPS
+          { f: `${XLSX.utils.encode_col(6)}${rowNum}+${XLSX.utils.encode_col(7)}${rowNum}` }, // Total OUT
+          { f: `${XLSX.utils.encode_col(5)}${rowNum}-${XLSX.utils.encode_col(8)}${rowNum}` }  // Current Stock
         );
       } else if (activeTab === 'oil-seal' || activeTab === 'extrusion') {
         row.push(
@@ -2930,7 +3152,7 @@ export default function App() {
         // Opening for Day N is Current Stock of Day N-1 (or TOTAL Opening for Day 1)
         const dOpening = dIdx === 0 ? opening : { f: `${XLSX.utils.encode_col(prevGroupEndCol)}${rowNum}` };
 
-        if (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') {
+        if (activeTab === 'bonding') {
           row.push(
             dOpening, 
             dTotals.metalStoreIn, 
@@ -2944,6 +3166,30 @@ export default function App() {
             dTotals.rejectionOutToMetalStore, 
             { f: `${XLSX.utils.encode_col(groupStartCol+6)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+7)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+8)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+9)}${rowNum}` },
             { f: `${XLSX.utils.encode_col(groupStartCol+5)}${rowNum}-${XLSX.utils.encode_col(groupStartCol+10)}${rowNum}` }
+          );
+        } else if (activeTab === 'auto-clave') {
+          row.push(
+            dOpening, 
+            dTotals.autoClaveProdIn, 
+            dTotals.autoClaveMiniStoreIn, 
+            dTotals.autoClaveMetalIn, 
+            dTotals.autoClaveReworkIn, 
+            { f: `${XLSX.utils.encode_col(groupStartCol)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+1)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+2)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+3)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+4)}${rowNum}` },
+            dTotals.autoClaveRejectionOut, 
+            dTotals.autoClaveMetalOut, 
+            { f: `${XLSX.utils.encode_col(groupStartCol+6)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+7)}${rowNum}` },
+            { f: `${XLSX.utils.encode_col(groupStartCol+5)}${rowNum}-${XLSX.utils.encode_col(groupStartCol+8)}${rowNum}` }
+          );
+        } else if (activeTab === 'phosphate') {
+          row.push(
+            dOpening, 
+            dTotals.metalStoreIn, 
+            dTotals.chemicalStoreIn, 
+            { f: `${XLSX.utils.encode_col(groupStartCol)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+1)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+2)}${rowNum}` },
+            dTotals.phosphateOutToBonding, 
+            dTotals.rejectionOutToRps, 
+            { f: `${XLSX.utils.encode_col(groupStartCol+4)}${rowNum}+${XLSX.utils.encode_col(groupStartCol+5)}${rowNum}` },
+            { f: `${XLSX.utils.encode_col(groupStartCol+3)}${rowNum}-${XLSX.utils.encode_col(groupStartCol+6)}${rowNum}` }
           );
         } else if (activeTab === 'oil-seal' || activeTab === 'extrusion') {
           row.push(
@@ -4034,7 +4280,7 @@ export default function App() {
                       {/* Totals Row at Top */}
                       <tr className="bg-slate-50 border-b border-slate-200">
                         <th className="px-6 py-3 text-xs font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 w-[200px]">TOTALS</th>
-                      { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                      { (activeTab === 'bonding') ? (
                           <>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.metalStoreIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.chemicalStoreIn?.toLocaleString()}</th>
@@ -4045,6 +4291,26 @@ export default function App() {
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.oilSealOut?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.hvcmOut?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.rejectionOutToMetalStore?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-rose-700 text-center bg-rose-50/30 w-[120px]">{dailyTotals.totalOut?.toLocaleString()}</th>
+                          </>
+                        ) : activeTab === 'auto-clave' ? (
+                          <>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveProdIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveMiniStoreIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveMetalIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveReworkIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-emerald-700 text-center border-r border-slate-200 bg-emerald-50/30 w-[120px]">{dailyTotals.totalIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveRejectionOut?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveMetalOut?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-rose-700 text-center bg-rose-50/30 w-[120px]">{dailyTotals.totalOut?.toLocaleString()}</th>
+                          </>
+                        ) : activeTab === 'phosphate' ? (
+                          <>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.metalStoreIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.chemicalStoreIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-emerald-700 text-center border-r border-slate-200 bg-emerald-50/30 w-[120px]">{dailyTotals.totalIn?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.phosphateOutToBonding?.toLocaleString()}</th>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.rejectionOutToRps?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-rose-700 text-center bg-rose-50/30 w-[120px]">{dailyTotals.totalOut?.toLocaleString()}</th>
                           </>
                         ) : activeTab === 'oil-seal' ? (
@@ -4058,6 +4324,7 @@ export default function App() {
                           </>
                         ) : activeTab === 'extrusion' ? (
                           <>
+                            <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.reworkIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.extrusionProdIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.extrusionMetalIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.extrusionMiniStoreIn?.toLocaleString()}</th>
@@ -4148,7 +4415,7 @@ export default function App() {
                             <DailySortIcon field="date" />
                           </div>
                         </th>
-                      { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                      { (activeTab === 'bonding') ? (
                           <>
                             <th onClick={() => handleDailySort('metalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL STORE IN</span><DailySortIcon field="metalStoreIn" /></div></th>
                             <th onClick={() => handleDailySort('chemicalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>CHEMICAL STORE IN</span><DailySortIcon field="chemicalStoreIn" /></div></th>
@@ -4159,6 +4426,26 @@ export default function App() {
                             <th onClick={() => handleDailySort('oilSealOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>OIL SEAL OUT</span><DailySortIcon field="oilSealOut" /></div></th>
                             <th onClick={() => handleDailySort('hvcmOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>HVCM OUT</span><DailySortIcon field="hvcmOut" /></div></th>
                             <th onClick={() => handleDailySort('rejectionOutToMetalStore')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT</span><DailySortIcon field="rejectionOutToMetalStore" /></div></th>
+                            <th onClick={() => handleDailySort('totalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL OUT</span><DailySortIcon field="totalOut" /></div></th>
+                          </>
+                        ) : activeTab === 'auto-clave' ? (
+                          <>
+                            <th onClick={() => handleDailySort('autoClaveProdIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PROD IN</span><DailySortIcon field="autoClaveProdIn" /></div></th>
+                            <th onClick={() => handleDailySort('autoClaveMiniStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>MINI STORE IN</span><DailySortIcon field="autoClaveMiniStoreIn" /></div></th>
+                            <th onClick={() => handleDailySort('autoClaveMetalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL IN</span><DailySortIcon field="autoClaveMetalIn" /></div></th>
+                            <th onClick={() => handleDailySort('autoClaveReworkIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REWORK IN</span><DailySortIcon field="autoClaveReworkIn" /></div></th>
+                            <th onClick={() => handleDailySort('totalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL IN</span><DailySortIcon field="totalIn" /></div></th>
+                            <th onClick={() => handleDailySort('autoClaveRejectionOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT</span><DailySortIcon field="autoClaveRejectionOut" /></div></th>
+                            <th onClick={() => handleDailySort('autoClaveMetalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL OUT</span><DailySortIcon field="autoClaveMetalOut" /></div></th>
+                            <th onClick={() => handleDailySort('totalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL OUT</span><DailySortIcon field="totalOut" /></div></th>
+                          </>
+                        ) : activeTab === 'phosphate' ? (
+                          <>
+                            <th onClick={() => handleDailySort('metalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL STORE IN</span><DailySortIcon field="metalStoreIn" /></div></th>
+                            <th onClick={() => handleDailySort('chemicalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>CHEMICAL STORE IN</span><DailySortIcon field="chemicalStoreIn" /></div></th>
+                            <th onClick={() => handleDailySort('totalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL IN</span><DailySortIcon field="totalIn" /></div></th>
+                            <th onClick={() => handleDailySort('phosphateOutToBonding')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PHOSPHATE OUT TO BONDING</span><DailySortIcon field="phosphateOutToBonding" /></div></th>
+                            <th onClick={() => handleDailySort('rejectionOutToRps')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT TO RPS</span><DailySortIcon field="rejectionOutToRps" /></div></th>
                             <th onClick={() => handleDailySort('totalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL OUT</span><DailySortIcon field="totalOut" /></div></th>
                           </>
                         ) : activeTab === 'oil-seal' ? (
@@ -4184,6 +4471,9 @@ export default function App() {
                           </>
                         ) : activeTab === 'extrusion' ? (
                           <>
+                            <th onClick={() => handleDailySort('reworkIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]">
+                              <div className="flex items-center justify-center gap-2"><span>REWORK IN</span><DailySortIcon field="reworkIn" /></div>
+                            </th>
                             <th onClick={() => handleDailySort('extrusionProdIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]">
                               <div className="flex items-center justify-center gap-2"><span>PROD IN</span><DailySortIcon field="extrusionProdIn" /></div>
                             </th>
@@ -4297,7 +4587,7 @@ export default function App() {
                             <td className="px-6 py-4 text-sm font-bold text-slate-900 text-center border-r border-slate-100 bg-slate-50/30">
                               {format(day.date, 'dd-MMM-yyyy')}
                             </td>
-                            { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                            { (activeTab === 'bonding') ? (
                               <>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.metalStoreIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.chemicalStoreIn?.toLocaleString()}</td>
@@ -4308,6 +4598,26 @@ export default function App() {
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.oilSealOut?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.hvcmOut?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.rejectionOutToMetalStore?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] font-bold text-rose-600 text-center bg-rose-50/20">{day.totalOut?.toLocaleString()}</td>
+                              </>
+                            ) : activeTab === 'auto-clave' ? (
+                              <>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveProdIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveMiniStoreIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveMetalIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveReworkIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] font-bold text-emerald-600 text-center border-r border-slate-100 bg-emerald-50/20">{day.totalIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveRejectionOut?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveMetalOut?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] font-bold text-rose-600 text-center bg-rose-50/20">{day.totalOut?.toLocaleString()}</td>
+                              </>
+                            ) : activeTab === 'phosphate' ? (
+                              <>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.metalStoreIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.chemicalStoreIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] font-bold text-emerald-600 text-center border-r border-slate-100 bg-emerald-50/20">{day.totalIn?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.phosphateOutToBonding?.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.rejectionOutToRps?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] font-bold text-rose-600 text-center bg-rose-50/20">{day.totalOut?.toLocaleString()}</td>
                               </>
                             ) : activeTab === 'oil-seal' ? (
@@ -4321,6 +4631,7 @@ export default function App() {
                               </>
                             ) : activeTab === 'extrusion' ? (
                               <>
+                                <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.reworkIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.extrusionProdIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.extrusionMetalIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.extrusionMiniStoreIn?.toLocaleString()}</td>
@@ -4474,12 +4785,24 @@ export default function App() {
                             </th>
                           )}
                           
-                          { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                          { (activeTab === 'bonding') ? (
                             <>
                               {isColVisible(columnTotals.metalStoreIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.metalStoreIn.toLocaleString()}</th>}
                               {isColVisible(columnTotals.chemicalStoreIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.chemicalStoreIn.toLocaleString()}</th>}
                               {isColVisible(columnTotals.phosphateIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.phosphateIn.toLocaleString()}</th>}
                               {isColVisible(columnTotals.moldIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.moldIn.toLocaleString()}</th>}
+                            </>
+                          ) : activeTab === 'auto-clave' ? (
+                            <>
+                              {isColVisible(columnTotals.autoClaveProdIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.autoClaveProdIn.toLocaleString()}</th>}
+                              {isColVisible(columnTotals.autoClaveMiniStoreIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.autoClaveMiniStoreIn.toLocaleString()}</th>}
+                              {isColVisible(columnTotals.autoClaveMetalIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.autoClaveMetalIn.toLocaleString()}</th>}
+                              {isColVisible(columnTotals.autoClaveReworkIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.autoClaveReworkIn.toLocaleString()}</th>}
+                            </>
+                          ) : activeTab === 'phosphate' ? (
+                            <>
+                              {isColVisible(columnTotals.metalStoreIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.metalStoreIn.toLocaleString()}</th>}
+                              {isColVisible(columnTotals.chemicalStoreIn) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.chemicalStoreIn.toLocaleString()}</th>}
                             </>
                           ) : activeTab === 'oil-seal' ? (
                             <>
@@ -4488,6 +4811,7 @@ export default function App() {
                             </>
                           ) : activeTab === 'extrusion' ? (
                             <>
+                              <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.reworkIn?.toLocaleString()}</th>
                               <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.extrusionProdIn?.toLocaleString()}</th>
                               <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.extrusionMetalIn?.toLocaleString()}</th>
                               <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.extrusionMiniStoreIn?.toLocaleString()}</th>
@@ -4534,12 +4858,22 @@ export default function App() {
                             </th>
                           )}
 
-                          { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                          { (activeTab === 'bonding') ? (
                             <>
                               {isColVisible(columnTotals.injcMoldOut) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.injcMoldOut?.toLocaleString()}</th>}
                               {isColVisible(columnTotals.oilSealOut) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.oilSealOut?.toLocaleString()}</th>}
                               {isColVisible(columnTotals.hvcmOut) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.hvcmOut?.toLocaleString()}</th>}
                               {isColVisible(columnTotals.rejectionOutToMetalStore) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.rejectionOutToMetalStore?.toLocaleString()}</th>}
+                            </>
+                          ) : activeTab === 'auto-clave' ? (
+                            <>
+                              {isColVisible(columnTotals.autoClaveRejectionOut) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.autoClaveRejectionOut?.toLocaleString()}</th>}
+                              {isColVisible(columnTotals.autoClaveMetalOut) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.autoClaveMetalOut?.toLocaleString()}</th>}
+                            </>
+                          ) : activeTab === 'phosphate' ? (
+                            <>
+                              {isColVisible(columnTotals.phosphateOutToBonding) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.phosphateOutToBonding?.toLocaleString()}</th>}
+                              {isColVisible(columnTotals.rejectionOutToRps) && <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{columnTotals.rejectionOutToRps?.toLocaleString()}</th>}
                             </>
                           ) : activeTab === 'oil-seal' ? (
                             <>
@@ -4713,12 +5047,24 @@ export default function App() {
                         </th>
                       )}
                       
-                      { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                      { (activeTab === 'bonding') ? (
                         <>
                           {isColVisible(columnTotals.metalStoreIn) && <th onClick={() => handleSort('metalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL STORE IN</span><SortIcon field="metalStoreIn" /></div></th>}
                           {isColVisible(columnTotals.chemicalStoreIn) && <th onClick={() => handleSort('chemicalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>CHEMICAL STORE IN</span><SortIcon field="chemicalStoreIn" /></div></th>}
                           {isColVisible(columnTotals.phosphateIn) && <th onClick={() => handleSort('phosphateIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PHOSPHATE IN</span><SortIcon field="phosphateIn" /></div></th>}
                           {isColVisible(columnTotals.moldIn) && <th onClick={() => handleSort('moldIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>MOLD IN</span><SortIcon field="moldIn" /></div></th>}
+                        </>
+                      ) : activeTab === 'auto-clave' ? (
+                        <>
+                          {isColVisible(columnTotals.autoClaveProdIn) && <th onClick={() => handleSort('autoClaveProdIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PROD IN</span><SortIcon field="autoClaveProdIn" /></div></th>}
+                          {isColVisible(columnTotals.autoClaveMiniStoreIn) && <th onClick={() => handleSort('autoClaveMiniStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>MINI STORE IN</span><SortIcon field="autoClaveMiniStoreIn" /></div></th>}
+                          {isColVisible(columnTotals.autoClaveMetalIn) && <th onClick={() => handleSort('autoClaveMetalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL IN</span><SortIcon field="autoClaveMetalIn" /></div></th>}
+                          {isColVisible(columnTotals.autoClaveReworkIn) && <th onClick={() => handleSort('autoClaveReworkIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REWORK IN</span><SortIcon field="autoClaveReworkIn" /></div></th>}
+                        </>
+                      ) : activeTab === 'phosphate' ? (
+                        <>
+                          {isColVisible(columnTotals.metalStoreIn) && <th onClick={() => handleSort('metalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL STORE IN</span><SortIcon field="metalStoreIn" /></div></th>}
+                          {isColVisible(columnTotals.chemicalStoreIn) && <th onClick={() => handleSort('chemicalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>CHEMICAL STORE IN</span><SortIcon field="chemicalStoreIn" /></div></th>}
                         </>
                       ) : activeTab === 'oil-seal' ? (
                         <>
@@ -4735,6 +5081,7 @@ export default function App() {
                         </>
                       ) : activeTab === 'extrusion' ? (
                         <>
+                          <th onClick={() => handleSort('reworkIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REWORK IN</span><SortIcon field="reworkIn" /></div></th>
                           <th onClick={() => handleSort('extrusionProdIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PROD IN</span><SortIcon field="extrusionProdIn" /></div></th>
                           <th onClick={() => handleSort('extrusionMetalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL IN EXTRUS</span><SortIcon field="extrusionMetalIn" /></div></th>
                           <th onClick={() => handleSort('extrusionMiniStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>MINI STORE IN EXTRUS</span><SortIcon field="extrusionMiniStoreIn" /></div></th>
@@ -4787,12 +5134,22 @@ export default function App() {
                         </th>
                       )}
 
-                      { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                      { (activeTab === 'bonding') ? (
                         <>
                           {isColVisible(columnTotals.injcMoldOut) && <th onClick={() => handleSort('injcMoldOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>INJC MOLD OUT</span><SortIcon field="injcMoldOut" /></div></th>}
                           {isColVisible(columnTotals.oilSealOut) && <th onClick={() => handleSort('oilSealOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>OIL SEAL OUT</span><SortIcon field="oilSealOut" /></div></th>}
                           {isColVisible(columnTotals.hvcmOut) && <th onClick={() => handleSort('hvcmOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>HVCM OUT</span><SortIcon field="hvcmOut" /></div></th>}
                           {isColVisible(columnTotals.rejectionOutToMetalStore) && <th onClick={() => handleSort('rejectionOutToMetalStore')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT</span><SortIcon field="rejectionOutToMetalStore" /></div></th>}
+                        </>
+                      ) : activeTab === 'auto-clave' ? (
+                        <>
+                          {isColVisible(columnTotals.autoClaveRejectionOut) && <th onClick={() => handleSort('autoClaveRejectionOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT</span><SortIcon field="autoClaveRejectionOut" /></div></th>}
+                          {isColVisible(columnTotals.autoClaveMetalOut) && <th onClick={() => handleSort('autoClaveMetalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL OUT</span><SortIcon field="autoClaveMetalOut" /></div></th>}
+                        </>
+                      ) : activeTab === 'phosphate' ? (
+                        <>
+                          {isColVisible(columnTotals.phosphateOutToBonding) && <th onClick={() => handleSort('phosphateOutToBonding')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PHOSPHATE OUT</span><SortIcon field="phosphateOutToBonding" /></div></th>}
+                          {isColVisible(columnTotals.rejectionOutToRps) && <th onClick={() => handleSort('rejectionOutToRps')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT TO RPS</span><SortIcon field="rejectionOutToRps" /></div></th>}
                         </>
                       ) : activeTab === 'oil-seal' ? (
                         <>
@@ -4959,12 +5316,24 @@ export default function App() {
                             </td>
                           )}
                           
-                          { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                          { (activeTab === 'bonding') ? (
                             <>
                               {isColVisible(columnTotals.metalStoreIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.metalStoreIn?.toLocaleString()}</td>}
                               {isColVisible(columnTotals.chemicalStoreIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.chemicalStoreIn?.toLocaleString()}</td>}
                               {isColVisible(columnTotals.phosphateIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.phosphateIn?.toLocaleString()}</td>}
                               {isColVisible(columnTotals.moldIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.moldIn?.toLocaleString()}</td>}
+                            </>
+                          ) : activeTab === 'auto-clave' ? (
+                            <>
+                              {isColVisible(columnTotals.autoClaveProdIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.autoClaveProdIn?.toLocaleString()}</td>}
+                              {isColVisible(columnTotals.autoClaveMiniStoreIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.autoClaveMiniStoreIn?.toLocaleString()}</td>}
+                              {isColVisible(columnTotals.autoClaveMetalIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.autoClaveMetalIn?.toLocaleString()}</td>}
+                              {isColVisible(columnTotals.autoClaveReworkIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.autoClaveReworkIn?.toLocaleString()}</td>}
+                            </>
+                          ) : activeTab === 'phosphate' ? (
+                            <>
+                              {isColVisible(columnTotals.metalStoreIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.metalStoreIn?.toLocaleString()}</td>}
+                              {isColVisible(columnTotals.chemicalStoreIn) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.chemicalStoreIn?.toLocaleString()}</td>}
                             </>
                           ) : activeTab === 'oil-seal' ? (
                             <>
@@ -4973,6 +5342,7 @@ export default function App() {
                             </>
                           ) : activeTab === 'extrusion' ? (
                             <>
+                              <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.reworkIn?.toLocaleString()}</td>
                               <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.extrusionProdIn?.toLocaleString()}</td>
                               <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.extrusionMetalIn?.toLocaleString()}</td>
                               <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.extrusionMiniStoreIn?.toLocaleString()}</td>
@@ -5019,12 +5389,22 @@ export default function App() {
                             </td>
                           )}
 
-                          { (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (
+                          { (activeTab === 'bonding') ? (
                             <>
                               {isColVisible(columnTotals.injcMoldOut) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.injcMoldOut?.toLocaleString()}</td>}
                               {isColVisible(columnTotals.oilSealOut) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.oilSealOut?.toLocaleString()}</td>}
                               {isColVisible(columnTotals.hvcmOut) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.hvcmOut?.toLocaleString()}</td>}
                               {isColVisible(columnTotals.rejectionOutToMetalStore) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.rejectionOutToMetalStore?.toLocaleString()}</td>}
+                            </>
+                          ) : activeTab === 'auto-clave' ? (
+                            <>
+                              {isColVisible(columnTotals.autoClaveRejectionOut) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.autoClaveRejectionOut?.toLocaleString()}</td>}
+                              {isColVisible(columnTotals.autoClaveMetalOut) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.autoClaveMetalOut?.toLocaleString()}</td>}
+                            </>
+                          ) : activeTab === 'phosphate' ? (
+                            <>
+                              {isColVisible(columnTotals.phosphateOutToBonding) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.phosphateOutToBonding?.toLocaleString()}</td>}
+                              {isColVisible(columnTotals.rejectionOutToRps) && <td className="px-2 py-1.5 text-[11px] text-center text-slate-600 border-r border-slate-200">{item.rejectionOutToRps?.toLocaleString()}</td>}
                             </>
                           ) : activeTab === 'oil-seal' ? (
                             <>
