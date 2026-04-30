@@ -205,7 +205,7 @@ const MENU_ITEMS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'molding' | 'oil-seal' | 'quality' | 'trimming' | 'job-tracking' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion'>('job-tracking');
+  const [activeTab, setActiveTab] = useState<'molding' | 'oil-seal' | 'quality' | 'trimming' | 'job-tracking' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion'>('mini-store');
   const [openingStocks, setOpeningStocks] = useState<OpeningStockRow[]>([]);
   const [vendorOpeningStocks, setVendorOpeningStocks] = useState<OpeningStockRow[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -3384,8 +3384,8 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 className="overflow-hidden whitespace-nowrap"
               >
-                <h2 className="text-lg font-black text-slate-800 leading-none tracking-tight">ProDash</h2>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Analytics</span>
+                <h2 className="text-[15px] font-black text-slate-800 leading-none tracking-tight">Stock Inventory</h2>
+                <span className="text-[10px] font-black text-violet-600 uppercase tracking-[0.15em]">Dashboard</span>
               </motion.div>
             )}
           </div>
@@ -4299,10 +4299,8 @@ export default function App() {
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveMiniStoreIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveMetalIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveReworkIn?.toLocaleString()}</th>
-                            <th className="px-2 py-1.5 text-[11px] font-black text-emerald-700 text-center border-r border-slate-200 bg-emerald-50/30 w-[120px]">{dailyTotals.totalIn?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveRejectionOut?.toLocaleString()}</th>
                             <th className="px-2 py-1.5 text-[11px] font-black text-slate-900 text-center border-r border-slate-200 w-[120px]">{dailyTotals.autoClaveMetalOut?.toLocaleString()}</th>
-                            <th className="px-2 py-1.5 text-[11px] font-black text-rose-700 text-center bg-rose-50/30 w-[120px]">{dailyTotals.totalOut?.toLocaleString()}</th>
                           </>
                         ) : activeTab === 'phosphate' ? (
                           <>
@@ -4434,17 +4432,15 @@ export default function App() {
                             <th onClick={() => handleDailySort('autoClaveMiniStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>MINI STORE IN</span><DailySortIcon field="autoClaveMiniStoreIn" /></div></th>
                             <th onClick={() => handleDailySort('autoClaveMetalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL IN</span><DailySortIcon field="autoClaveMetalIn" /></div></th>
                             <th onClick={() => handleDailySort('autoClaveReworkIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REWORK IN</span><DailySortIcon field="autoClaveReworkIn" /></div></th>
-                            <th onClick={() => handleDailySort('totalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL IN</span><DailySortIcon field="totalIn" /></div></th>
                             <th onClick={() => handleDailySort('autoClaveRejectionOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT</span><DailySortIcon field="autoClaveRejectionOut" /></div></th>
                             <th onClick={() => handleDailySort('autoClaveMetalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL OUT</span><DailySortIcon field="autoClaveMetalOut" /></div></th>
-                            <th onClick={() => handleDailySort('totalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL OUT</span><DailySortIcon field="totalOut" /></div></th>
                           </>
                         ) : activeTab === 'phosphate' ? (
                           <>
                             <th onClick={() => handleDailySort('metalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>METAL STORE IN</span><DailySortIcon field="metalStoreIn" /></div></th>
                             <th onClick={() => handleDailySort('chemicalStoreIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>CHEMICAL STORE IN</span><DailySortIcon field="chemicalStoreIn" /></div></th>
                             <th onClick={() => handleDailySort('totalIn')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL IN</span><DailySortIcon field="totalIn" /></div></th>
-                            <th onClick={() => handleDailySort('phosphateOutToBonding')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PHOSPHATE OUT TO BONDING</span><DailySortIcon field="phosphateOutToBonding" /></div></th>
+                            <th onClick={() => handleDailySort('phosphateOutToBonding')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>PHOSPHATE OUT</span><DailySortIcon field="phosphateOutToBonding" /></div></th>
                             <th onClick={() => handleDailySort('rejectionOutToRps')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>REJECTION OUT TO RPS</span><DailySortIcon field="rejectionOutToRps" /></div></th>
                             <th onClick={() => handleDailySort('totalOut')} className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center cursor-pointer hover:bg-slate-50 transition-colors w-[120px]"><div className="flex items-center justify-center gap-2"><span>TOTAL OUT</span><DailySortIcon field="totalOut" /></div></th>
                           </>
@@ -4606,10 +4602,8 @@ export default function App() {
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveMiniStoreIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveMetalIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveReworkIn?.toLocaleString()}</td>
-                                <td className="px-2 py-2 text-[11px] font-bold text-emerald-600 text-center border-r border-slate-100 bg-emerald-50/20">{day.totalIn?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveRejectionOut?.toLocaleString()}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-600 text-center border-r border-slate-100">{day.autoClaveMetalOut?.toLocaleString()}</td>
-                                <td className="px-2 py-2 text-[11px] font-bold text-rose-600 text-center bg-rose-50/20">{day.totalOut?.toLocaleString()}</td>
                               </>
                             ) : activeTab === 'phosphate' ? (
                               <>
