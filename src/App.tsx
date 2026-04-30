@@ -3469,8 +3469,8 @@ export default function App() {
             </div>
             {!isSidebarCollapsed && (
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-slate-800 truncate">Ammar ATS</p>
-                <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter truncate">Inventory Manager</p>
+                <p className="text-xs font-bold text-slate-800 truncate">Ammar Mehmood</p>
+                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-tight truncate">AM Auditor & ERP</p>
               </div>
             )}
           </div>
