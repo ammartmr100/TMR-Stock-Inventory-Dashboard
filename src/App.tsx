@@ -3464,13 +3464,13 @@ export default function App() {
             "flex items-center gap-3 px-3 py-3 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all",
             isSidebarCollapsed ? "justify-center px-1" : ""
           )}>
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shrink-0 text-xs shadow-md shadow-indigo-100">
+            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-black shrink-0 text-xs shadow-md shadow-violet-100">
               AM
             </div>
             {!isSidebarCollapsed && (
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-slate-800 truncate">Ammar Mehmood</p>
-                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-tight truncate">AM Auditor & ERP</p>
+                <p className="text-[13px] font-bold text-slate-900 truncate">Ammar Mehmood</p>
+                <p className="text-[10px] font-bold text-violet-600 uppercase tracking-tight truncate">AM Auditor & ERP</p>
               </div>
             )}
           </div>
