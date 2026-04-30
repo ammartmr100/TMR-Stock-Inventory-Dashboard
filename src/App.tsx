@@ -1936,7 +1936,7 @@ export default function App() {
     // 2. Build data rows with formulas
     const data = sortedData.map((row, index) => {
       const rowNum = index + 4; // Title(1) + Totals(2) + Headers(3) + Data starts at 4
-      const dateStr = format(row.date instanceof Date ? row.date : new Date(row.date), 'd-MMM-yyyy');
+      const dateStr = format(row.date instanceof Date ? row.date : new Date(row.date), 'd-MMM-yyyy').toUpperCase();
       
       // Opening Stock Formula: 
       // Row 4 (first data row) uses initialOpening
@@ -2019,9 +2019,9 @@ export default function App() {
     }
 
     const sheetData = [
-      [`${tabTitle} Daily Transaction Summary - ${selectedMonth}`],
+      [`${tabTitle.toUpperCase()} DAILY TRANSACTION SUMMARY - ${selectedMonth.toUpperCase()}`],
       totalsRow,
-      headers,
+      headers.map(h => String(h).toUpperCase()),
       ...data
     ];
 
@@ -2073,20 +2073,20 @@ export default function App() {
     const lastRow = dataRowsCount + 3; // Row 1 (Title) + Row 2 (Total) + Row 3 (Header) + Data rows
 
     // Determine Title
-    const tabTitle = activeTab === 'molding' ? 'Molding' : 
+    const tabTitle = (activeTab === 'molding' ? 'Molding' : 
                      activeTab === 'oil-seal' ? 'Oil Seal Trimming' :
                      (activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave') ? (activeTab === 'bonding' ? 'Bonding' : activeTab === 'phosphate' ? 'Phosphate' : 'Auto Clave') :
                      activeTab === 'extrusion' ? 'Extrusion' :
                      activeTab === 'quality' ? 'Quality' : 
                      activeTab === 'mini-store' ? 'Mini Store' :
                      activeTab === 'fg-store' ? 'FG Store' :
-                     'Trimming';
+                     'Trimming').toUpperCase();
 
-    const reportType = showJobSummary ? 'JOB SUMMARY' : 'STOCK REPORT';
+    const reportType = (showJobSummary ? 'JOB SUMMARY' : 'STOCK REPORT').toUpperCase();
     
     // Dynamic Column Headers based on Job Summary mode
-    const col1Header = showJobSummary ? 'Job #' : (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID'));
-    const col2Header = showJobSummary ? (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')) : 'Job #';
+    const col1Header = (showJobSummary ? 'Job #' : (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID'))).toUpperCase();
+    const col2Header = (showJobSummary ? (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')) : 'Job #').toUpperCase();
 
     let dateInfo = '';
     if (selectedDates.length > 0) {
@@ -2108,6 +2108,7 @@ export default function App() {
     } else {
       dateInfo = `Till ${format(new Date(), 'dd-MMMM-yyyy')}`;
     }
+    dateInfo = dateInfo.toUpperCase();
 
     const title = `${tabTitle} ${reportType} - ${dateInfo}`;
 
@@ -2286,8 +2287,8 @@ export default function App() {
     // Row 4+: Data with formulas for calculated columns
     const dataRows = summaryData.map((s, index) => {
       const rowNum = index + 4; // Data starts at Row 4
-      const col1Val = showJobSummary ? s.jobId : s.itemId;
-      const col2Val = showJobSummary ? s.partName : s.jobId;
+      const col1Val = String(showJobSummary ? s.jobId : s.itemId).toUpperCase();
+      const col2Val = String(showJobSummary ? s.partName : s.jobId).toUpperCase();
 
       if (activeTab === 'bonding') {
         return [
@@ -2381,8 +2382,8 @@ export default function App() {
       } else if (activeTab === 'quality') {
         // Quality
         return [
-          col1Header === 'Job #' ? s.jobId : s.itemId,
-          col1Header === 'Job #' ? s.itemId : s.jobId,
+          col1Val,
+          col2Val,
           s.openingStock,
           s.fgReworkIn,
           s.metalStoreIn,
@@ -2404,8 +2405,8 @@ export default function App() {
       } else if (activeTab === 'mini-store') {
         // Mini Store
         return [
-          col1Header === 'Job #' ? s.jobId : s.itemId,
-          col1Header === 'Job #' ? s.itemId : s.jobId,
+          col1Val,
+          col2Val,
           s.openingStock,
           s.compoundIn,
           s.moldReturnIn,
@@ -2674,31 +2675,31 @@ export default function App() {
     // Prepare data for Excel
     const excelData = jobTrackingData.map(job => {
       const row: any = {
-        "Job #": job.jobId,
-        "Part Name": job.partName
+        "JOB #": String(job.jobId).toUpperCase(),
+        "PART NAME": String(job.partName).toUpperCase()
       };
       
       // Add totals
       Object.entries(job.totals as Record<string, number>).forEach(([type, qty]) => {
-        row[type] = qty;
+        row[type.toUpperCase()] = qty;
       });
       
       return row;
     });
 
     const ws = XLSX.utils.json_to_sheet(excelData);
-    XLSX.utils.book_append_sheet(wb, ws, "Job Tracking Summary");
+    XLSX.utils.book_append_sheet(wb, ws, "JOB TRACKING SUMMARY");
 
     // Also add detailed history sheet
     const detailedData = jobTrackingData.flatMap(job => 
       job.transactions.map((t: any) => ({
-        "Job #": job.jobId,
-        "Part Name": job.partName,
-        "Department": t.department,
-        "Date": t.date,
-        "Type": t.type,
-        "Quantity": t.quantity,
-        "Shift": t.shift
+        "JOB #": String(job.jobId).toUpperCase(),
+        "PART NAME": String(job.partName).toUpperCase(),
+        "DEPARTMENT": String(t.department).toUpperCase(),
+        "DATE": String(t.date).toUpperCase(),
+        "TYPE": String(t.type).toUpperCase(),
+        "QUANTITY": t.quantity,
+        "SHIFT": String(t.shift).toUpperCase()
       }))
     );
 
@@ -2764,16 +2765,16 @@ export default function App() {
         vendorStocksByPart.set(key, val);
       });
     }
-     const tabTitle = activeTab === 'molding' ? 'Molding' : 
+     const tabTitle = (activeTab === 'molding' ? 'Molding' : 
                       activeTab === 'oil-seal' || activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave' || activeTab === 'extrusion' ? 
                       (activeTab === 'oil-seal' ? 'Oil Seal Trimming' : activeTab === 'bonding' ? 'Bonding' : activeTab === 'phosphate' ? 'Phosphate' : activeTab === 'auto-clave' ? 'Auto Clave' : 'Extrusion') : 
                       activeTab === 'quality' ? 'Quality' : 
                       activeTab === 'mini-store' ? 'Mini Store' :
                       activeTab === 'fg-store' ? 'FG Store' :
-                      'Trimming';
+                      'Trimming').toUpperCase();
 
     // 2. Define Group Headers based on Tab
-    const groupHeaders = (activeTab === 'bonding') ?
+    const groupHeadersRaw = (activeTab === 'bonding') ?
       ['OPENING STOCK', 'METAL STORE IN', 'CHEMICAL STORE IN', 'PHOSPHATE IN', 'MOLD IN', 'TOTAL IN', 'INJC MOLD OUT', 'OIL SEAL OUT', 'HVCM OUT', 'REJECTION OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
       activeTab === 'auto-clave' ?
       ['OPENING STOCK', 'PROD IN', 'MINI STORE IN', 'METAL IN', 'REWORK IN', 'TOTAL IN', 'REJECTION OUT', 'METAL OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
@@ -2791,8 +2792,9 @@ export default function App() {
       ['OPENING STOCK', 'CUSTOMER REJECTION IN', 'QC IN', 'REWORK IN', 'AUTO CLAVE IN', 'TOTAL IN', 'REJECTION OUT TO RPS', 'QC REWORK OUT', 'FG OUT', 'TOTAL OUT', 'CURRENT STOCK'] :
       ['INHOUSE OPENING STOCK', 'VENDOR OPENING STOCK', 'TRIMMING VENDOR IN', 'QC REWORK IN', 'MOLD IN', 'METAL STORE IN', 'EXTRUSION IN', 'TOTAL IN', 'QC OUT', 'VENDOR OUT', 'REJECTION OUT TO RPS', 'TOTAL OUT', 'IN HOUSE STOCK', 'VENDOR STOCK', 'TOTAL STOCK'];
 
+    const groupHeaders = groupHeadersRaw.map(h => h.toUpperCase());
     const groupSize = groupHeaders.length;
-    const firstColHeader = activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID');
+    const firstColHeader = (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')).toUpperCase();
 
     // 3. Group transactions by part name for efficient lookup
     const transByPart = new Map<string, Transaction[]>();
@@ -2980,7 +2982,7 @@ export default function App() {
     const sheetData: any[] = [];
     
     // Row 1: Main Title
-    const mainTitle = `${tabTitle} Stock Report - ${selectedMonth}`;
+    const mainTitle = (`${tabTitle} Stock Report - ${selectedMonth}`).toUpperCase();
     sheetData.push([mainTitle]);
 
     // Row 2: Group Headers (TOTAL, Day 1, Day 2, etc.)
@@ -2988,7 +2990,7 @@ export default function App() {
     row2.push('TOTAL');
     for (let i = 1; i < groupSize; i++) row2.push(''); // Fill for merge
     for (const day of sortedActiveDays) {
-      row2.push(format(day, 'EEEE, MMMM d, yyyy'));
+      row2.push(format(day, 'EEEE, MMMM d, yyyy').toUpperCase());
       for (let i = 1; i < groupSize; i++) row2.push(''); // Fill for merge
     }
     sheetData.push(row2);
@@ -3012,18 +3014,18 @@ export default function App() {
     sheetData.push(row3);
 
     // Row 4: Column Headers
-    const row4 = [firstColHeader, 'Job #'];
-    row4.push(...groupHeaders); // For TOTAL group
+    const row4 = [firstColHeader.toUpperCase(), 'JOB #'];
+    row4.push(...groupHeaders.map(h => h.toUpperCase())); // For TOTAL group
     for (let i = 0; i < sortedActiveDays.length; i++) {
-      row4.push(...groupHeaders); // For each Day group
+      row4.push(...groupHeaders.map(h => h.toUpperCase())); // For each Day group
     }
     sheetData.push(row4);
 
     // Row 5+: Data Rows
     activeOpeningStocks.forEach((stock, index) => {
       const summaryItem = allItemsWithActivity.find(item => item.itemId === stock.partName);
-      const jobId = summaryItem?.jobId || '';
-      const row: any[] = [stock.partName, jobId];
+      const jobId = String(summaryItem?.jobId || '').toUpperCase();
+      const row: any[] = [String(stock.partName).toUpperCase(), jobId];
       const rowNum = index + 5; // Excel rows are 1-indexed, data starts at Row 5
       const opening = stock.monthlyStocks[selectedMonth] || 0;
       const filteredTrans = getFilteredTrans(stock.partName);
@@ -3329,9 +3331,9 @@ export default function App() {
       const sPartKey = item.partName.toString().trim().toLowerCase();
       return sum + (vendorStocksByPart.get(sPartKey) || 0);
     }, 0) : 0;
-    addDailySummarySheetToWorkbook(workbook, tabTitle, selectedMonth, activeTab, sortedDailySummary, dailyTotals, initialOpening, initialVendorOpening);
+    addDailySummarySheetToWorkbook(workbook, tabTitle, selectedMonth.toUpperCase(), activeTab, sortedDailySummary, dailyTotals, initialOpening, initialVendorOpening);
 
-    const fileName = `${tabTitle.replace(/\s+/g, '_')}_Daily_Report_${selectedMonth.replace(/\s+/g, '_')}.xlsx`;
+    const fileName = `${tabTitle.replace(/\s+/g, '_')}_Daily_Report_${selectedMonth.replace(/\s+/g, '_').toUpperCase()}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -3339,19 +3341,19 @@ export default function App() {
     if (sortedDailySummary.length === 0) return;
 
     const workbook = XLSX.utils.book_new();
-    const tabTitle = activeTab === 'molding' ? 'Molding' : 
+    const tabTitle = (activeTab === 'molding' ? 'Molding' : 
                      activeTab === 'oil-seal' || activeTab === 'bonding' || activeTab === 'phosphate' || activeTab === 'auto-clave' || activeTab === 'extrusion' ? 
                      (activeTab === 'oil-seal' ? 'Oil Seal Trimming' : activeTab === 'bonding' ? 'Bonding' : activeTab === 'phosphate' ? 'Phosphate' : activeTab === 'auto-clave' ? 'Auto Clave' : 'Extrusion') : 
                      activeTab === 'quality' ? 'Quality' : 
                      activeTab === 'mini-store' ? 'Mini Store' :
                      activeTab === 'fg-store' ? 'FG Store' :
-                     'Trimming';
+                     'Trimming').toUpperCase();
     
     const initialOpening = summaryData.reduce((sum, item) => sum + item.openingStock, 0);
     const initialVendorOpening = activeTab === 'trimming' || activeTab === 'extrusion' ? summaryData.reduce((sum, item) => sum + (item.vendorOpeningStock || 0), 0) : 0;
-    addDailySummarySheetToWorkbook(workbook, tabTitle, selectedMonth, activeTab, sortedDailySummary, dailyTotals, initialOpening, initialVendorOpening);
+    addDailySummarySheetToWorkbook(workbook, tabTitle, selectedMonth.toUpperCase(), activeTab, sortedDailySummary, dailyTotals, initialOpening, initialVendorOpening);
 
-    const fileName = `${tabTitle.replace(/\s+/g, '_')}_Daily_Summary_${selectedMonth.replace(/\s+/g, '_')}.xlsx`;
+    const fileName = `${tabTitle.replace(/\s+/g, '_')}_Daily_Summary_${selectedMonth.replace(/\s+/g, '_').toUpperCase()}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
