@@ -205,7 +205,7 @@ const MENU_ITEMS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'molding' | 'oil-seal' | 'quality' | 'trimming' | 'job-tracking' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion'>('mini-store');
+  const [activeTab, setActiveTab] = useState<'molding' | 'oil-seal' | 'quality' | 'trimming' | 'job-tracking' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion'>('job-tracking');
   const [openingStocks, setOpeningStocks] = useState<OpeningStockRow[]>([]);
   const [vendorOpeningStocks, setVendorOpeningStocks] = useState<OpeningStockRow[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
