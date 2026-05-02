@@ -2277,7 +2277,7 @@ export default function App() {
 
     // Row 2: TOTALS (with formulas summing the data rows)
     const totalsRow = headers.map((h, i) => {
-      if (i === 0 || i === 1) return i === 0 ? 'Total' : '';
+      if (i < 2) return i === 0 ? 'TOTAL' : '';
       const colLetter = XLSX.utils.encode_col(i);
       return { f: `SUM(${colLetter}4:${colLetter}${lastRow})` };
     });
@@ -2704,7 +2704,7 @@ export default function App() {
     );
 
     const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
-    XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed History");
+    XLSX.utils.book_append_sheet(wb, wsDetailed, "DETAILED HISTORY");
 
     XLSX.writeFile(wb, `Job_Tracking_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
@@ -3004,7 +3004,7 @@ export default function App() {
     });
 
     // Row 3: Totals (Formulas)
-    const row3: any[] = ['Total', ''];
+    const row3: any[] = ['TOTAL', ''];
     const totalCols = 2 + groupSize + (sortedActiveDays.length * groupSize);
     const lastDataRow = activeOpeningStocks.length + 4;
     for (let i = 2; i < totalCols; i++) {
