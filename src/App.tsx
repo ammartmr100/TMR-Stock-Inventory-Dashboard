@@ -314,7 +314,7 @@ export default function App() {
   };
 
   // Fetch Data
-  const fetchData = async (tabToFetch: 'molding' | 'oil-seal' | 'quality' | 'trimming' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'extrusion', retry: number = 0, force: boolean = false) => {
+  const fetchData = async (tabToFetch: 'molding' | 'oil-seal' | 'quality' | 'trimming' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion', retry: number = 0, force: boolean = false) => {
     const retryCount = retry;
     const isForced = force === true;
     
@@ -551,16 +551,15 @@ export default function App() {
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchData('molding', 0, true),
-        fetchData('oil-seal', 0, true),
-        fetchData('bonding', 0, true),
-        fetchData('extrusion', 0, true),
-        fetchData('quality', 0, true),
-        fetchData('trimming', 0, true),
-        fetchData('fg-store', 0, true),
-        fetchData('mini-store', 0, true)
-      ]);
+      // Fetch the active tab first to ensure immediate data display
+      await fetchData(activeTab as any, 0, true);
+      
+      // Then background fetch the rest for performance
+      const otherTabs = MENU_ITEMS
+        .map(i => i.id)
+        .filter(id => id !== activeTab && id !== 'job-tracking') as any[];
+        
+      await Promise.all(otherTabs.map(tab => fetchData(tab, 0, true)));
       setLoading(false);
     };
     fetchAll();
@@ -568,17 +567,15 @@ export default function App() {
 
   // Sync state when activeTab changes (from cache)
   useEffect(() => {
-    if (activeTab === 'job-tracking') {
-      // For job tracking, we don't need to sync specific openingStocks/transactions
-      // as it uses allTransactions from dataCache
-      return;
-    }
+    if (activeTab === 'job-tracking') return;
+    
     if (dataCache[activeTab]) {
       const newMonths = dataCache[activeTab].availableMonths;
       setOpeningStocks(dataCache[activeTab].openingStocks);
       setVendorOpeningStocks(dataCache[activeTab].vendorOpeningStocks || []);
       setTransactions(dataCache[activeTab].transactions);
       setAvailableMonths(newMonths);
+      setLastUpdated(new Date());
 
       // Ensure selectedMonth is valid for the new tab
       if (selectedMonth && newMonths.length > 0 && !newMonths.includes(selectedMonth)) {
@@ -592,9 +589,9 @@ export default function App() {
         const match = newMonths.find(m => m.toLowerCase() === currentMonthStr.toLowerCase());
         setSelectedMonth(match || newMonths[newMonths.length - 1]);
       }
-    } else {
-      // If not in cache for some reason, fetch it
-      fetchData(activeTab as 'molding' | 'oil-seal' | 'quality' | 'trimming' | 'bonding' | 'phosphate' | 'fg-store' | 'mini-store' | 'extrusion');
+    } else if (!loading) {
+      // Small delay to prevent overlap if already loading
+      fetchData(activeTab as any);
     }
   }, [activeTab, dataCache]);
 
