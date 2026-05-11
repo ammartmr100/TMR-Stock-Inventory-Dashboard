@@ -3399,6 +3399,22 @@ export default function App() {
           </button>
         </div>
 
+        {/* Developers Branding */}
+        {!isSidebarCollapsed && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="px-9 pb-6 -mt-3"
+          >
+            <div className="flex flex-col border-l-2 border-slate-900 pl-4 py-1">
+              <span className="text-[9px] font-black text-black uppercase tracking-[0.15em]">Developed By</span>
+              <span className="text-[15px] font-black text-black tracking-tight mt-0.5">
+                AMMAR MEHMOOD
+              </span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Sidebar Navigation */}
         <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide">
           <div className="space-y-1">
