@@ -407,11 +407,19 @@ export default function App() {
       // Valid indices fallback if header detection failed for mandatory columns
       // If we found 'Particular' for both part and type, we need to be careful.
       // Usually, Part is column 1 and Type is column 3/4.
-      const finalDateIdx = dateIdx === -1 ? 0 : dateIdx;
-      const finalPartIdx = partIdx === -1 ? 1 : partIdx;
-      const finalTypeIdx = typeIdx === -1 ? (tabToFetch === 'quality' || tabToFetch === 'mini-store' ? 2 : 3) : typeIdx;
-      const finalQtyIdx = qtyIdx === -1 ? (tabToFetch === 'quality' || tabToFetch === 'mini-store' ? 4 : 4) : qtyIdx;
-      const finalJobIdx = jobIdx === -1 ? 5 : jobIdx;
+      let finalDateIdx = dateIdx === -1 ? 0 : dateIdx;
+      let finalPartIdx = partIdx === -1 ? 1 : partIdx;
+      let finalTypeIdx = typeIdx === -1 ? (tabToFetch === 'quality' || tabToFetch === 'mini-store' ? 2 : 3) : typeIdx;
+      let finalQtyIdx = qtyIdx === -1 ? (tabToFetch === 'quality' || tabToFetch === 'mini-store' ? 4 : 4) : qtyIdx;
+      let finalJobIdx = jobIdx === -1 ? 5 : jobIdx;
+
+      if (tabToFetch === 'mini-store') {
+        finalJobIdx = 3;  // Column D
+        finalTypeIdx = 4; // Column E
+        finalQtyIdx = 5;  // Column F
+        finalPartIdx = 7; // Column H
+        finalDateIdx = 0; // Column A
+      }
 
       let months: string[] = [];
       let stocks: OpeningStockRow[] = [];
@@ -1705,16 +1713,16 @@ export default function App() {
     
     // Define the strict production flow order
     const departmentOrder: Record<string, number> = {
-      'molding': 1,
-      'oil-seal': 2,
-      'trimming': 3,
-      'quality': 4,
-      'fg-store': 5,
-      'bonding': 6,
-      'phosphate': 7,
-      'auto-clave': 8,
-      'extrusion': 9,
-      'mini-store': 10
+      'mini-store': 1,
+      'molding': 2,
+      'oil-seal': 3,
+      'trimming': 4,
+      'quality': 5,
+      'fg-store': 6,
+      'bonding': 7,
+      'phosphate': 8,
+      'auto-clave': 9,
+      'extrusion': 10
     };
 
     const getSortScore = (dept: string, type: string) => {
@@ -4132,7 +4140,7 @@ export default function App() {
                                             type.toLowerCase().includes('in') ? "bg-emerald-500" : "bg-rose-500"
                                           )} />
                                           <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-black uppercase tracking-tighter leading-none mb-0.5">{dept.replace('-', ' ').toUpperCase()}</span>
+                                            <span className="text-[11px] font-black text-black uppercase tracking-tighter leading-none mb-0.5">{dept === 'mini-store' ? 'MINI STORE RUBBER' : dept.replace('-', ' ').toUpperCase()}</span>
                                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none">{type.toUpperCase()}</span>
                                           </div>
                                           <span className={cn(
@@ -4170,7 +4178,7 @@ export default function App() {
                                         <div key={i} className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1.5 hover:shadow-md transition-all border-l-4 border-l-blue-500">
                                           <div className="flex justify-between items-start">
                                             <div className="flex flex-col">
-                                              <span className="text-xs font-black text-black uppercase tracking-tight leading-none mb-1">{t.department?.toUpperCase()}</span>
+                                              <span className="text-xs font-black text-black uppercase tracking-tight leading-none mb-1">{t.department === 'mini-store' ? 'MINI STORE RUBBER' : t.department?.replace('-', ' ').toUpperCase()}</span>
                                               <span className="text-[10px] font-bold text-slate-800 uppercase">{t.type?.toUpperCase()}</span>
                                             </div>
                                             <div className="bg-slate-50 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-slate-500">
