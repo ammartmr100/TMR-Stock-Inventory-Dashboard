@@ -273,7 +273,10 @@ export default function App() {
   const [dailySortConfig, setDailySortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
   const dateCacheMap = useRef<Map<string, Date | null>>(new Map());
 
-  const [showAllJobs, setShowAllJobs] = useState(false);
+  const [jobTrackingPage, setJobTrackingPage] = useState(1);
+  useEffect(() => {
+    setJobTrackingPage(1);
+  }, [jobSearchTerm, showDuplicatesOnly, activeTab]);
   const [showJobColumn, setShowJobColumn] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const isQualityTab = activeTab === 'quality' || activeTab === 'mini-store';
@@ -1773,6 +1776,16 @@ export default function App() {
       };
     });
   }, [allTransactions, activeTab, jobSearchTerm, showDuplicatesOnly]);
+
+  const itemsPerPage = 10;
+  const totalJobTrackingPages = useMemo(() => {
+    return Math.ceil(jobTrackingData.length / itemsPerPage);
+  }, [jobTrackingData]);
+
+  const paginatedJobs = useMemo(() => {
+    const startIdx = (jobTrackingPage - 1) * itemsPerPage;
+    return jobTrackingData.slice(startIdx, startIdx + itemsPerPage);
+  }, [jobTrackingData, jobTrackingPage]);
   
   const visibleColumnCount = useMemo(() => {
     let count = 1; // Part No. & Name
@@ -4091,8 +4104,8 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {jobTrackingData.length > 0 ? (
-                        (showAllJobs ? jobTrackingData : jobTrackingData.slice(0, 10)).map((job) => (
+                      {paginatedJobs.length > 0 ? (
+                        paginatedJobs.map((job) => (
                           <React.Fragment key={job.uniqueKey}>
                             <tr 
                               onClick={() => setExpandedJob(expandedJob === job.uniqueKey ? null : job.uniqueKey)}
@@ -4226,17 +4239,80 @@ export default function App() {
                           </td>
                         </tr>
                       )}
-                      {!showAllJobs && jobTrackingData.length > 10 && (
+                      {totalJobTrackingPages > 1 && (
                         <tr>
-                          <td colSpan={3} className="px-6 py-6 text-center bg-slate-50/30 border-t border-slate-100">
-                            <button 
-                              onClick={() => setShowAllJobs(true)}
-                              className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-black text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all"
-                            >
-                              <History className="w-4 h-4" />
-                              VIEW ALL {jobTrackingData.length} JOBS
-                              <ChevronDown className="w-4 h-4" />
-                            </button>
+                          <td colSpan={3} className="px-6 py-6 bg-slate-50/50 border-t border-slate-100">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                              <div className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                                Showing <span className="text-blue-600 font-extrabold">{Math.min(jobTrackingData.length, (jobTrackingPage - 1) * itemsPerPage + 1)}-{Math.min(jobTrackingData.length, jobTrackingPage * itemsPerPage)}</span> of <span className="text-blue-600 font-extrabold">{jobTrackingData.length}</span> jobs
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setJobTrackingPage(prev => Math.max(1, prev - 1))}
+                                  disabled={jobTrackingPage === 1}
+                                  className="flex items-center justify-center p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-300 transition-all font-bold text-xs"
+                                  title="Previous Page"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                {(() => {
+                                  const pages: (number | string)[] = [];
+                                  const maxVisible = 5;
+                                  if (totalJobTrackingPages <= maxVisible) {
+                                    for (let i = 1; i <= totalJobTrackingPages; i++) pages.push(i);
+                                  } else {
+                                    pages.push(1);
+                                    if (jobTrackingPage > 3) {
+                                      pages.push('...');
+                                    }
+                                    const start = Math.max(2, jobTrackingPage - 1);
+                                    const end = Math.min(totalJobTrackingPages - 1, jobTrackingPage + 1);
+                                    for (let i = start; i <= end; i++) {
+                                      if (!pages.includes(i)) pages.push(i);
+                                    }
+                                    if (jobTrackingPage < totalJobTrackingPages - 2) {
+                                      pages.push('...');
+                                    }
+                                    pages.push(totalJobTrackingPages);
+                                  }
+                                  return pages.map((p, idx) => {
+                                    if (p === '...') {
+                                      return (
+                                        <span key={`ellipse-${idx}`} className="px-2 text-slate-400 font-bold text-sm">
+                                          ...
+                                        </span>
+                                      );
+                                    }
+                                    const isCurrent = p === jobTrackingPage;
+                                    return (
+                                      <button
+                                        key={`page-${p}`}
+                                        type="button"
+                                        onClick={() => setJobTrackingPage(p as number)}
+                                        className={cn(
+                                          "flex items-center justify-center w-8 h-8 rounded-xl font-bold text-xs transition-all border",
+                                          isCurrent 
+                                            ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm" 
+                                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                        )}
+                                      >
+                                        {p}
+                                      </button>
+                                    );
+                                  });
+                                })()}
+                                <button
+                                  type="button"
+                                  onClick={() => setJobTrackingPage(prev => Math.min(totalJobTrackingPages, prev + 1))}
+                                  disabled={jobTrackingPage === totalJobTrackingPages}
+                                  className="flex items-center justify-center p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-300 transition-all font-bold text-xs"
+                                  title="Next Page"
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       )}
