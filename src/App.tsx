@@ -43,6 +43,7 @@ import { format, parse, isValid, startOfDay, endOfDay, startOfMonth, endOfMonth,
 import * as XLSX from 'xlsx-js-style';
 import { cn } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { Analytics } from '@vercel/analytics/react';
 
 // Types
 interface OpeningStockRow {
@@ -5636,6 +5637,7 @@ export default function App() {
         {hideZeroColumns ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         <span>{hideZeroColumns ? "SHOW ALL COLUMNS" : "HIDE ZERO COLUMNS"}</span>
       </button>
+      <Analytics />
     </div>
   );
 }
