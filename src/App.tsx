@@ -4323,38 +4323,89 @@ export default function App() {
             ) : (
               <React.Fragment>
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {activeTab !== 'molding' && (
+                {activeTab === 'trimming' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard 
                       label="TOTAL OPENING STOCK" 
-                      value={summaryData.reduce((sum, item) => sum + item.openingStock, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                      value={summaryData.reduce((sum, item) => sum + item.openingStock + (item.vendorOpeningStock || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
                       icon={<Package className="w-5 h-5" />}
                       color="blue"
                     />
-                  )}
-                  {activeTab !== 'molding' && (
                     <StatCard 
                       label="TOTAL IN" 
                       value={summaryData.reduce((sum, item) => sum + item.totalIn, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
                       icon={<ArrowUpCircle className="w-5 h-5" />}
                       color="emerald"
                     />
-                  )}
-                  <StatCard 
-                    label="TOTAL OUT" 
-                    value={summaryData.reduce((sum, item) => sum + item.totalOut, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
-                    icon={<ArrowDownCircle className="w-5 h-5" />}
-                    color="rose"
-                  />
-                  {activeTab !== 'molding' && (
                     <StatCard 
-                      label="CURRENT STOCK" 
-                      value={summaryData.reduce((sum, item) => sum + item.currentStock, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
-                      icon={<AlertCircle className="w-5 h-5" />}
-                      color="amber"
+                      label="TOTAL OUT" 
+                      value={summaryData.reduce((sum, item) => sum + item.totalOut, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                      icon={<ArrowDownCircle className="w-5 h-5" />}
+                      color="rose"
                     />
-                  )}
-                </div>
+                    <StatCard 
+                      label="TOTAL STOCK" 
+                      value={summaryData.reduce((sum, item) => sum + (item.totalStock || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                      icon={<Activity className="w-5 h-5" />}
+                      color="indigo"
+                      extra={
+                        <div className="flex flex-col gap-1.5 text-xs">
+                          <div className="flex justify-between items-center text-slate-600">
+                            <span className="font-semibold flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                              In House:
+                            </span>
+                            <span className="font-bold text-slate-800">
+                              {summaryData.reduce((sum, item) => sum + item.currentStock, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-slate-600">
+                            <span className="font-semibold flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-violet-500"></span>
+                              Vendor:
+                            </span>
+                            <span className="font-bold text-slate-800">
+                              {summaryData.reduce((sum, item) => sum + (item.vendorStock || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        </div>
+                      }
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {activeTab !== 'molding' && (
+                      <StatCard 
+                        label="TOTAL OPENING STOCK" 
+                        value={summaryData.reduce((sum, item) => sum + item.openingStock, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                        icon={<Package className="w-5 h-5" />}
+                        color="blue"
+                      />
+                    )}
+                    {activeTab !== 'molding' && (
+                      <StatCard 
+                        label="TOTAL IN" 
+                        value={summaryData.reduce((sum, item) => sum + item.totalIn, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                        icon={<ArrowUpCircle className="w-5 h-5" />}
+                        color="emerald"
+                      />
+                    )}
+                    <StatCard 
+                      label="TOTAL OUT" 
+                      value={summaryData.reduce((sum, item) => sum + item.totalOut, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                      icon={<ArrowDownCircle className="w-5 h-5" />}
+                      color="rose"
+                    />
+                    {activeTab !== 'molding' && (
+                      <StatCard 
+                        label="CURRENT STOCK" 
+                        value={summaryData.reduce((sum, item) => sum + item.currentStock, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} 
+                        icon={<AlertCircle className="w-5 h-5" />}
+                        color="amber"
+                      />
+                    )}
+                  </div>
+                )}
 
             {/* Main Table or Daily Summary */}
             {showDailySummary ? (
@@ -5640,25 +5691,40 @@ export default function App() {
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string, value: string | number, icon: React.ReactNode, color: 'blue' | 'emerald' | 'rose' | 'amber' }) {
+function StatCard({ label, value, icon, color, extra }: { 
+  label: string, 
+  value: string | number, 
+  icon: React.ReactNode, 
+  color: 'blue' | 'emerald' | 'rose' | 'amber' | 'indigo' | 'violet',
+  extra?: React.ReactNode
+}) {
   const colors = {
     blue: "bg-blue-50 text-blue-600 border-blue-100",
     emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
     rose: "bg-rose-50 text-rose-600 border-rose-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100"
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    violet: "bg-violet-50 text-violet-600 border-violet-100"
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className={cn("p-2 rounded-lg border", colors[color])}>
-          {icon}
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className={cn("p-2 rounded-lg border", colors[color])}>
+            {icon}
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
         </div>
       </div>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className="text-2xl font-bold text-slate-900">{value}</p>
-      </div>
+      {extra && (
+        <div className="mt-4 pt-3 border-t border-slate-100">
+          {extra}
+        </div>
+      )}
     </div>
   );
 }
