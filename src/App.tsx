@@ -420,7 +420,7 @@ export default function App() {
         finalJobIdx = 3;  // Column D
         finalTypeIdx = 4; // Column E
         finalQtyIdx = 5;  // Column F
-        finalPartIdx = 7; // Column H
+        finalPartIdx = 1; // Column B
         finalDateIdx = 0; // Column A
       }
 
@@ -2106,8 +2106,8 @@ export default function App() {
     const reportType = (showJobSummary ? 'JOB SUMMARY' : 'STOCK REPORT').toUpperCase();
     
     // Dynamic Column Headers based on Job Summary mode
-    const col1Header = (showJobSummary ? 'Job #' : (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID'))).toUpperCase();
-    const col2Header = (showJobSummary ? (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')) : 'Job #').toUpperCase();
+    const col1Header = (showJobSummary ? 'Job #' : (activeTab === 'mini-store' ? 'Part Name' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID'))).toUpperCase();
+    const col2Header = (showJobSummary ? (activeTab === 'mini-store' ? 'Part Name' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')) : 'Job #').toUpperCase();
 
     let dateInfo = '';
     if (selectedDates.length > 0) {
@@ -2815,7 +2815,7 @@ export default function App() {
 
     const groupHeaders = groupHeadersRaw.map(h => h.toUpperCase());
     const groupSize = groupHeaders.length;
-    const firstColHeader = (activeTab === 'mini-store' ? 'ITEM ID' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')).toUpperCase();
+    const firstColHeader = (activeTab === 'mini-store' ? 'Part Name' : (activeTab === 'quality' || activeTab === 'fg-store' ? 'Part No. & Name' : 'Item ID')).toUpperCase();
 
     // 3. Group transactions by part name for efficient lookup
     const transByPart = new Map<string, Transaction[]>();
@@ -5114,7 +5114,7 @@ export default function App() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span>{showJobSummary ? (activeTab === 'mini-store' ? 'JOB #' : 'JOB #') : (activeTab === 'mini-store' ? 'ITEM ID' : 'PART NO. & NAME')}</span>
+                            <span>{showJobSummary ? (activeTab === 'mini-store' ? 'JOB #' : 'JOB #') : (activeTab === 'mini-store' ? 'PART NAME' : 'PART NO. & NAME')}</span>
                             <div className="flex items-center gap-1">
                               {!showJobSummary && (
                                 <button 
@@ -5161,7 +5161,7 @@ export default function App() {
                           className="px-2 py-2 text-[10px] font-bold text-black uppercase tracking-wider text-center border-r border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors relative group/header"
                         >
                           <div className="flex items-center justify-center gap-2">
-                            <span>{showJobSummary ? (activeTab === 'mini-store' ? 'ITEM ID' : 'PART NAME') : (activeTab === 'mini-store' ? 'JOB #' : 'JOB #')}</span>
+                            <span>{showJobSummary ? (activeTab === 'mini-store' ? 'PART NAME' : 'PART NAME') : (activeTab === 'mini-store' ? 'JOB #' : 'JOB #')}</span>
                             <SortIcon field="jobId" />
                           </div>
                           <div 
