@@ -4193,6 +4193,45 @@ export default function App() {
                                 .map(dept => {
                                   const deptTransactions = job.transactions.filter((t: any) => t.department === dept.id);
                                   
+                                  // Sort by date chronologically
+                                  const deptTransactionsSorted = [...deptTransactions].sort((a, b) => {
+                                    return (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0);
+                                  });
+
+                                  let balance = 0;
+                                  const ledger = deptTransactionsSorted.map((t: any) => {
+                                    const typeLower = t.type.toLowerCase();
+                                    const isOut = typeLower.includes('out') || typeLower.includes('rejection') || typeLower.includes('sent') || typeLower.includes('issue');
+                                    const isIn = typeLower.includes('in') || typeLower.includes('recd') || typeLower.includes('received') || typeLower.includes('ok');
+
+                                    let effectiveType: 'in' | 'out';
+                                    if (isOut) {
+                                      effectiveType = 'out';
+                                    } else if (isIn) {
+                                      effectiveType = 'in';
+                                    } else {
+                                      if (typeLower.includes('out') || typeLower.includes('rejection')) {
+                                        effectiveType = 'out';
+                                      } else {
+                                        effectiveType = 'in';
+                                      }
+                                    }
+
+                                    if (effectiveType === 'in') {
+                                      balance += t.quantity;
+                                    } else {
+                                      balance -= t.quantity;
+                                    }
+
+                                    return {
+                                      date: t.date,
+                                      type: effectiveType,
+                                      originalType: t.type,
+                                      quantity: t.quantity,
+                                      balance: balance
+                                    };
+                                  });
+
                                   let inQty = 0;
                                   let outQty = 0;
 
@@ -4220,7 +4259,8 @@ export default function App() {
                                     ...dept,
                                     inQty,
                                     outQty,
-                                    pendingBalance
+                                    pendingBalance,
+                                    ledger
                                   };
                                 });
 
@@ -4247,6 +4287,55 @@ export default function App() {
 
                               const vendorPendingBalance = vendorSent - vendorRecv;
                               const hasVendorActivity = vendorSent > 0 || vendorRecv > 0;
+
+                              const vendorTransactions = job.transactions.filter((t: any) => {
+                                const typeLower = t.type.toLowerCase();
+                                const deptLower = t.department.toLowerCase();
+                                
+                                if (deptLower === 'trimming' && typeLower.includes('vendor')) {
+                                  return true;
+                                }
+                                if (deptLower === 'mini-store' && typeLower.includes('vendor') && (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue'))) {
+                                  return true;
+                                }
+                                return false;
+                              });
+
+                              const vendorTransactionsSorted = [...vendorTransactions].sort((a, b) => (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0));
+
+                              let vendorBalance = 0;
+                              const vendorLedger = vendorTransactionsSorted.map((t: any) => {
+                                const typeLower = t.type.toLowerCase();
+                                const deptLower = t.department.toLowerCase();
+                                
+                                let isSent = false;
+                                let isRecv = false;
+                                
+                                if (deptLower === 'trimming' && typeLower.includes('vendor')) {
+                                  if (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue')) {
+                                    isSent = true;
+                                  } else if (typeLower.includes('in') || typeLower.includes('recd') || typeLower.includes('received') || typeLower.includes('ok')) {
+                                    isRecv = true;
+                                  }
+                                }
+                                if (deptLower === 'mini-store' && typeLower.includes('vendor') && (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue'))) {
+                                  isSent = true;
+                                }
+
+                                if (isSent) {
+                                  vendorBalance += t.quantity;
+                                } else if (isRecv) {
+                                  vendorBalance -= t.quantity;
+                                }
+
+                                return {
+                                  date: t.date,
+                                  type: isSent ? 'in' : 'out',
+                                  originalType: isSent ? 'SENT' : 'RECEIVED',
+                                  quantity: t.quantity,
+                                  balance: vendorBalance
+                                };
+                              });
 
                               return (
                                 <tr>
@@ -4279,7 +4368,7 @@ export default function App() {
                                                 </div>
                                               </div>
 
-                                              <div className="space-y-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-600">
+                                              <div className="space-y-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-600 mb-3">
                                                 <div className="flex justify-between items-center">
                                                   <span className="flex items-center gap-1">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -4296,11 +4385,41 @@ export default function App() {
                                                   <span className="font-extrabold text-slate-900">{dept.outQty.toLocaleString()}</span>
                                                 </div>
                                               </div>
+
+                                              {/* Chronological Ledger Section */}
+                                              {dept.ledger && dept.ledger.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-slate-150">
+                                                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 pb-0.5 border-b border-slate-100">
+                                                    <span className="w-1/3">TYPE</span>
+                                                    <span className="w-1/3 text-right">QTY</span>
+                                                    <span className="w-1/3 text-right">LEFT</span>
+                                                  </div>
+                                                  <div className="max-h-28 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                                                    {dept.ledger.map((entry: any, index: number) => (
+                                                      <div key={index} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
+                                                        <span className="w-1/3 flex items-center gap-1">
+                                                          <span className={cn(
+                                                            "w-1.5 h-1.5 rounded-full",
+                                                            entry.type === 'in' ? "bg-emerald-500" : "bg-rose-500"
+                                                          )}></span>
+                                                          <span className={cn(
+                                                            "uppercase text-[9px] font-black",
+                                                            entry.type === 'in' ? "text-emerald-600" : "text-rose-600"
+                                                          )}>{entry.type}</span>
+                                                          <span className="text-[8px] text-slate-400 font-normal font-mono">({entry.date})</span>
+                                                        </span>
+                                                        <span className="w-1/3 text-right font-mono text-slate-500">{entry.quantity.toLocaleString()}</span>
+                                                        <span className="w-1/3 text-right font-extrabold font-mono text-slate-900">{entry.balance.toLocaleString()}</span>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
                                             </div>
                                           ))}
 
                                           {hasVendorActivity && (
-                                            <div key="vendor-stock-card" className="bg-amber-50/40 border border-amber-200/80 p-4 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                                            <div key="vendor-stock-card" className="bg-amber-50/45 border border-amber-250 p-4 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
                                               <div>
                                                 <div className="flex items-center justify-between gap-2 mb-2">
                                                   <span className="text-[10px] font-black text-amber-900 tracking-tight uppercase truncate">VENDOR STOCK</span>
@@ -4319,7 +4438,7 @@ export default function App() {
                                                 </div>
                                               </div>
 
-                                              <div className="space-y-1 pt-2 border-t border-amber-200 text-[10px] font-bold text-amber-800/80">
+                                              <div className="space-y-1 pt-2 border-t border-amber-200 text-[10px] font-bold text-amber-800/80 mb-3">
                                                 <div className="flex justify-between items-center">
                                                   <span className="flex items-center gap-1">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -4336,6 +4455,36 @@ export default function App() {
                                                   <span className="font-extrabold text-amber-950">{vendorRecv.toLocaleString()}</span>
                                                 </div>
                                               </div>
+
+                                              {/* Vendor Chronological Ledger Section */}
+                                              {vendorLedger && vendorLedger.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-amber-200/60">
+                                                  <div className="flex justify-between text-[9px] font-black text-amber-800/60 uppercase tracking-widest mb-2 pb-0.5 border-b border-amber-200/40">
+                                                    <span className="w-1/3">TYPE</span>
+                                                    <span className="w-1/3 text-right">QTY</span>
+                                                    <span className="w-1/3 text-right">LEFT</span>
+                                                  </div>
+                                                  <div className="max-h-28 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                                                    {vendorLedger.map((entry: any, index: number) => (
+                                                      <div key={index} className="flex justify-between items-center text-[10px] font-bold text-amber-900/90">
+                                                        <span className="w-1/3 flex items-center gap-1">
+                                                          <span className={cn(
+                                                            "w-1.5 h-1.5 rounded-full",
+                                                            entry.type === 'in' ? "bg-amber-500" : "bg-rose-500"
+                                                          )}></span>
+                                                          <span className={cn(
+                                                            "uppercase text-[9px] font-black",
+                                                            entry.type === 'in' ? "text-amber-700" : "text-rose-700"
+                                                          )}>{entry.type}</span>
+                                                          <span className="text-[8px] text-amber-800/60 font-normal font-mono">({entry.date})</span>
+                                                        </span>
+                                                        <span className="w-1/3 text-right font-mono text-amber-700/85">{entry.quantity.toLocaleString()}</span>
+                                                        <span className="w-1/3 text-right font-extrabold font-mono text-amber-950">{entry.balance.toLocaleString()}</span>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
                                             </div>
                                           )}
                                         </div>
