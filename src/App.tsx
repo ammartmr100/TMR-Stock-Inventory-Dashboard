@@ -4173,49 +4173,217 @@ export default function App() {
                                 </div>
                               </td>
                             </tr>
-                            {expandedJob === job.uniqueKey && (
-                              <tr>
-                                <td colSpan={3} className="px-6 py-6 bg-slate-50/80 border-b border-slate-200">
-                                  <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                        <History className="w-3.5 h-3.5" />
-                                        DETAILED TRANSACTION HISTORY
-                                      </h4>
-                                      <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                        {job.transactions.length} TOTAL MOVEMENTS RECORDED
-                                      </span>
-                                    </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                                      {job.transactions.map((t: any, i: number) => (
-                                        <div key={i} className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1.5 hover:shadow-md transition-all border-l-4 border-l-blue-500">
-                                          <div className="flex justify-between items-start">
-                                            <div className="flex flex-col">
-                                              <span className="text-xs font-black text-black uppercase tracking-tight leading-none mb-1">{t.department === 'mini-store' ? 'MINI STORE RUBBER' : t.department?.replace('-', ' ').toUpperCase()}</span>
-                                              <span className="text-[10px] font-bold text-slate-800 uppercase">{t.type?.toUpperCase()}</span>
+                            {expandedJob === job.uniqueKey && (() => {
+                              const deptList = [
+                                { id: 'mini-store', name: 'MINI STORE RUBBER' },
+                                { id: 'molding', name: 'MOLDING' },
+                                { id: 'bonding', name: 'BONDING' },
+                                { id: 'phosphate', name: 'PHOSPHATE' },
+                                { id: 'oil-seal', name: 'OIL SEAL TRIMMING' },
+                                { id: 'extrusion', name: 'EXTRUSION' },
+                                { id: 'auto-clave', name: 'AUTO CLAVE' },
+                                { id: 'trimming', name: 'TRIMMING' },
+                                { id: 'quality', name: 'QUALITY' },
+                                { id: 'fg-store', name: 'FG STORE' }
+                              ];
+
+                              const departmentsWithActivity = new Set(job.transactions.map((t: any) => t.department));
+                              const activeDeptBalances = deptList
+                                .filter(d => departmentsWithActivity.has(d.id as any))
+                                .map(dept => {
+                                  const deptTransactions = job.transactions.filter((t: any) => t.department === dept.id);
+                                  
+                                  let inQty = 0;
+                                  let outQty = 0;
+
+                                  deptTransactions.forEach((t: any) => {
+                                    const typeLower = t.type.toLowerCase();
+                                    const isOut = typeLower.includes('out') || typeLower.includes('rejection') || typeLower.includes('sent') || typeLower.includes('issue');
+                                    const isIn = typeLower.includes('in') || typeLower.includes('recd') || typeLower.includes('received') || typeLower.includes('ok');
+
+                                    if (isOut) {
+                                      outQty += t.quantity;
+                                    } else if (isIn) {
+                                      inQty += t.quantity;
+                                    } else {
+                                      if (typeLower.includes('out') || typeLower.includes('rejection')) {
+                                        outQty += t.quantity;
+                                      } else {
+                                        inQty += t.quantity;
+                                      }
+                                    }
+                                  });
+
+                                  const pendingBalance = inQty - outQty;
+
+                                  return {
+                                    ...dept,
+                                    inQty,
+                                    outQty,
+                                    pendingBalance
+                                  };
+                                });
+
+                              // Calculate vendor stock for this specific job
+                              let vendorSent = 0; // Out to vendor (increases vendor stock)
+                              let vendorRecv = 0; // In from vendor (decreases vendor stock)
+
+                              job.transactions.forEach((t: any) => {
+                                const typeLower = t.type.toLowerCase();
+                                const deptLower = t.department.toLowerCase();
+
+                                if (deptLower === 'trimming' && typeLower.includes('vendor')) {
+                                  if (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue')) {
+                                    vendorSent += t.quantity;
+                                  } else if (typeLower.includes('in') || typeLower.includes('recd') || typeLower.includes('received') || typeLower.includes('ok')) {
+                                    vendorRecv += t.quantity;
+                                  }
+                                }
+
+                                if (deptLower === 'mini-store' && typeLower.includes('vendor') && (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue'))) {
+                                  vendorSent += t.quantity;
+                                }
+                              });
+
+                              const vendorPendingBalance = vendorSent - vendorRecv;
+                              const hasVendorActivity = vendorSent > 0 || vendorRecv > 0;
+
+                              return (
+                                <tr>
+                                  <td colSpan={3} className="px-6 py-6 bg-slate-50/80 border-b border-slate-200">
+                                    <div className="space-y-6">
+                                      {/* Department-wise Balances */}
+                                      <div className="space-y-3">
+                                        <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                          <Activity className="w-3.5 h-3.5 text-blue-600" />
+                                          DEPARTMENT & VENDOR PENDING BALANCES (TOTAL IN - TOTAL OUT)
+                                        </h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                          {activeDeptBalances.map((dept) => (
+                                            <div key={dept.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                                              <div>
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                  <span className="text-[10px] font-black text-slate-800 tracking-tight uppercase truncate">{dept.name}</span>
+                                                  <span className={cn(
+                                                    "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                                    dept.pendingBalance > 0 ? "bg-blue-50 text-blue-600 border border-blue-100" :
+                                                    dept.pendingBalance < 0 ? "bg-rose-50 text-rose-600 border border-rose-100" :
+                                                    "bg-slate-50 text-slate-400 border border-slate-100"
+                                                  )}>
+                                                    {dept.pendingBalance > 0 ? 'Pending' : dept.pendingBalance < 0 ? 'Surplus' : 'Balanced'}
+                                                  </span>
+                                                </div>
+                                                
+                                                <div className="text-xl font-black text-slate-900 tracking-tight mb-3">
+                                                  {dept.pendingBalance.toLocaleString()}
+                                                </div>
+                                              </div>
+
+                                              <div className="space-y-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-600">
+                                                <div className="flex justify-between items-center">
+                                                  <span className="flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Total In:
+                                                  </span>
+                                                  <span className="font-extrabold text-slate-900">{dept.inQty.toLocaleString()}</span>
+                                                </div>
+                                                
+                                                <div className="flex justify-between items-center">
+                                                  <span className="flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                    Total Out:
+                                                  </span>
+                                                  <span className="font-extrabold text-slate-900">{dept.outQty.toLocaleString()}</span>
+                                                </div>
+                                              </div>
                                             </div>
-                                            <div className="bg-slate-50 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-slate-500">
-                                              {t.date}
+                                          ))}
+
+                                          {hasVendorActivity && (
+                                            <div key="vendor-stock-card" className="bg-amber-50/40 border border-amber-200/80 p-4 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                                              <div>
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                  <span className="text-[10px] font-black text-amber-900 tracking-tight uppercase truncate">VENDOR STOCK</span>
+                                                  <span className={cn(
+                                                    "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                                    vendorPendingBalance > 0 ? "bg-amber-100 text-amber-800 border border-amber-200" :
+                                                    vendorPendingBalance < 0 ? "bg-rose-100 text-rose-800 border border-rose-200" :
+                                                    "bg-slate-100 text-slate-500 border border-slate-200"
+                                                  )}>
+                                                    {vendorPendingBalance > 0 ? 'With Vendor' : vendorPendingBalance < 0 ? 'Surplus Recv' : 'Balanced'}
+                                                  </span>
+                                                </div>
+                                                
+                                                <div className="text-xl font-black text-amber-950 tracking-tight mb-3">
+                                                  {vendorPendingBalance.toLocaleString()}
+                                                </div>
+                                              </div>
+
+                                              <div className="space-y-1 pt-2 border-t border-amber-200 text-[10px] font-bold text-amber-800/80">
+                                                <div className="flex justify-between items-center">
+                                                  <span className="flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Sent (In):
+                                                  </span>
+                                                  <span className="font-extrabold text-amber-950">{vendorSent.toLocaleString()}</span>
+                                                </div>
+                                                
+                                                <div className="flex justify-between items-center">
+                                                  <span className="flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                    Received (Out):
+                                                  </span>
+                                                  <span className="font-extrabold text-amber-950">{vendorRecv.toLocaleString()}</span>
+                                                </div>
+                                              </div>
                                             </div>
-                                          </div>
-                                          <div className="flex justify-between items-end">
-                                            <div className="text-right w-full">
-                                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none block mb-0.5">Quantity</span>
-                                              <span className={cn(
-                                                "text-xs font-black",
-                                                t.type.toLowerCase().includes('in') ? "text-emerald-600" : "text-rose-600"
-                                              )}>
-                                                {t.quantity.toLocaleString()}
-                                              </span>
-                                            </div>
-                                          </div>
+                                          )}
                                         </div>
-                                      ))}
+                                      </div>
+
+                                      {/* Detailed Transaction History */}
+                                      <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                            <History className="w-3.5 h-3.5 text-blue-600" />
+                                            DETAILED TRANSACTION MOVEMENT LOG
+                                          </h4>
+                                          <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                            {job.transactions.length} TOTAL MOVEMENTS RECORDED
+                                          </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                                          {job.transactions.map((t: any, i: number) => (
+                                            <div key={i} className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1.5 hover:shadow-md transition-all border-l-4 border-l-blue-500">
+                                              <div className="flex justify-between items-start">
+                                                <div className="flex flex-col">
+                                                  <span className="text-xs font-black text-black uppercase tracking-tight leading-none mb-1">{t.department === 'mini-store' ? 'MINI STORE RUBBER' : t.department?.replace('-', ' ').toUpperCase()}</span>
+                                                  <span className="text-[10px] font-bold text-slate-800 uppercase">{t.type?.toUpperCase()}</span>
+                                                </div>
+                                                <div className="bg-slate-50 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-slate-500">
+                                                  {t.date}
+                                                </div>
+                                              </div>
+                                              <div className="flex justify-between items-end">
+                                                <div className="text-right w-full">
+                                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none block mb-0.5">Quantity</span>
+                                                  <span className={cn(
+                                                    "text-xs font-black",
+                                                    t.type.toLowerCase().includes('in') ? "text-emerald-600" : "text-rose-600"
+                                                  )}>
+                                                    {t.quantity.toLocaleString()}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
+                                  </td>
+                                </tr>
+                              );
+                            })()}
                           </React.Fragment>
                         ))
                       ) : (
