@@ -4388,30 +4388,36 @@ export default function App() {
 
                                               {/* Chronological Ledger Section */}
                                               {dept.ledger && dept.ledger.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-slate-150">
-                                                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 pb-0.5 border-b border-slate-100">
-                                                    <span className="w-1/3">TYPE</span>
-                                                    <span className="w-1/3 text-right">QTY</span>
-                                                    <span className="w-1/3 text-right">LEFT</span>
+                                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                                    <span>TRANSACTION LEDGER</span>
                                                   </div>
-                                                  <div className="max-h-28 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-                                                    {dept.ledger.map((entry: any, index: number) => (
-                                                      <div key={index} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
-                                                        <span className="w-1/3 flex items-center gap-1">
-                                                          <span className={cn(
-                                                            "w-1.5 h-1.5 rounded-full",
-                                                            entry.type === 'in' ? "bg-emerald-500" : "bg-rose-500"
-                                                          )}></span>
-                                                          <span className={cn(
-                                                            "uppercase text-[9px] font-black",
-                                                            entry.type === 'in' ? "text-emerald-600" : "text-rose-600"
-                                                          )}>{entry.type}</span>
-                                                          <span className="text-[8px] text-slate-400 font-normal font-mono">({entry.date})</span>
-                                                        </span>
-                                                        <span className="w-1/3 text-right font-mono text-slate-500">{entry.quantity.toLocaleString()}</span>
-                                                        <span className="w-1/3 text-right font-extrabold font-mono text-slate-900">{entry.balance.toLocaleString()}</span>
-                                                      </div>
-                                                    ))}
+                                                  <div className="border border-[#00aeef]/30 rounded-xl overflow-hidden shadow-sm bg-white">
+                                                    <div className="grid grid-cols-4 bg-[#00aeef] text-white text-[10px] font-black uppercase tracking-wider text-center py-2 shadow-sm">
+                                                      <div className="border-r border-white/20">Date</div>
+                                                      <div className="border-r border-white/20">In</div>
+                                                      <div className="border-r border-white/20">Out</div>
+                                                      <div>Balance</div>
+                                                    </div>
+                                                    <div className="max-h-44 overflow-y-auto divide-y divide-[#00aeef]/10 bg-white custom-scrollbar">
+                                                      {dept.ledger.map((entry: any, index: number) => {
+                                                        const isDebit = entry.type === 'in';
+                                                        return (
+                                                          <div key={index} className="grid grid-cols-4 text-[11px] font-bold text-slate-800 text-center py-2.5 hover:bg-[#00aeef]/5 transition-colors border-b border-[#00aeef]/15">
+                                                            <div className="text-slate-500 font-mono flex items-center justify-center border-r border-[#00aeef]/10">{entry.date}</div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex items-center justify-center", isDebit ? "text-slate-900 font-extrabold" : "text-slate-400 font-normal")}>
+                                                              {isDebit ? entry.quantity.toLocaleString() : '0'}
+                                                            </div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex items-center justify-center", !isDebit ? "text-slate-900 font-extrabold" : "text-slate-400 font-normal")}>
+                                                              {!isDebit ? entry.quantity.toLocaleString() : '0'}
+                                                            </div>
+                                                            <div className="font-mono text-slate-950 font-black flex items-center justify-center bg-slate-50/40">
+                                                              {entry.balance.toLocaleString()}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
                                                   </div>
                                                 </div>
                                               )}
@@ -4458,30 +4464,36 @@ export default function App() {
 
                                               {/* Vendor Chronological Ledger Section */}
                                               {vendorLedger && vendorLedger.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-amber-200/60">
-                                                  <div className="flex justify-between text-[9px] font-black text-amber-800/60 uppercase tracking-widest mb-2 pb-0.5 border-b border-amber-200/40">
-                                                    <span className="w-1/3">TYPE</span>
-                                                    <span className="w-1/3 text-right">QTY</span>
-                                                    <span className="w-1/3 text-right">LEFT</span>
+                                                <div className="mt-3 pt-3 border-t border-amber-200/50">
+                                                  <div className="text-[10px] font-black text-amber-900 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                                    <span>VENDOR LEDGER</span>
                                                   </div>
-                                                  <div className="max-h-28 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-                                                    {vendorLedger.map((entry: any, index: number) => (
-                                                      <div key={index} className="flex justify-between items-center text-[10px] font-bold text-amber-900/90">
-                                                        <span className="w-1/3 flex items-center gap-1">
-                                                          <span className={cn(
-                                                            "w-1.5 h-1.5 rounded-full",
-                                                            entry.type === 'in' ? "bg-amber-500" : "bg-rose-500"
-                                                          )}></span>
-                                                          <span className={cn(
-                                                            "uppercase text-[9px] font-black",
-                                                            entry.type === 'in' ? "text-amber-700" : "text-rose-700"
-                                                          )}>{entry.type}</span>
-                                                          <span className="text-[8px] text-amber-800/60 font-normal font-mono">({entry.date})</span>
-                                                        </span>
-                                                        <span className="w-1/3 text-right font-mono text-amber-700/85">{entry.quantity.toLocaleString()}</span>
-                                                        <span className="w-1/3 text-right font-extrabold font-mono text-amber-950">{entry.balance.toLocaleString()}</span>
-                                                      </div>
-                                                    ))}
+                                                  <div className="border border-[#00aeef]/30 rounded-xl overflow-hidden shadow-sm bg-white">
+                                                    <div className="grid grid-cols-4 bg-[#00aeef] text-white text-[10px] font-black uppercase tracking-wider text-center py-2 shadow-sm">
+                                                      <div className="border-r border-white/20">Date</div>
+                                                      <div className="border-r border-white/20">In</div>
+                                                      <div className="border-r border-white/20">Out</div>
+                                                      <div>Balance</div>
+                                                    </div>
+                                                    <div className="max-h-44 overflow-y-auto divide-y divide-[#00aeef]/10 bg-white custom-scrollbar">
+                                                      {vendorLedger.map((entry: any, index: number) => {
+                                                        const isDebit = entry.type === 'in';
+                                                        return (
+                                                          <div key={index} className="grid grid-cols-4 text-[11px] font-bold text-amber-950 text-center py-2.5 hover:bg-[#00aeef]/5 transition-colors border-b border-[#00aeef]/15">
+                                                            <div className="text-amber-800/75 font-mono flex items-center justify-center border-r border-[#00aeef]/10">{entry.date}</div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex items-center justify-center", isDebit ? "text-amber-950 font-extrabold" : "text-amber-700/50 font-normal")}>
+                                                              {isDebit ? entry.quantity.toLocaleString() : '0'}
+                                                            </div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex items-center justify-center", !isDebit ? "text-amber-950 font-extrabold" : "text-amber-700/50 font-normal")}>
+                                                              {!isDebit ? entry.quantity.toLocaleString() : '0'}
+                                                              </div>
+                                                            <div className="font-mono text-slate-950 font-black flex items-center justify-center bg-amber-50/10">
+                                                              {entry.balance.toLocaleString()}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
                                                   </div>
                                                 </div>
                                               )}
