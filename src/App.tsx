@@ -60,6 +60,7 @@ interface Transaction {
   qtyKgs: number;
   shift: string;
   department: 'oil-seal' | 'quality' | 'trimming' | 'molding' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion';
+  originalIndex?: number;
 }
 
 interface StockSummary {
@@ -463,7 +464,8 @@ export default function App() {
           quantity: isNaN(qtyVal) ? 0 : qtyVal,
           qtyKgs: qtyKgs,
           shift: '', // Fallback
-          department: tabToFetch
+          department: tabToFetch,
+          originalIndex: rIdx
         };
       }).filter(t => t.partName && t.partName.length > 0 && t.date);
 
@@ -4356,7 +4358,11 @@ export default function App() {
                                 return false;
                               });
 
-                              const vendorTransactionsSorted = [...vendorTransactions].sort((a, b) => (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0));
+                              const vendorTransactionsSorted = [...vendorTransactions].sort((a, b) => {
+                                const dateDiff = (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0);
+                                if (dateDiff !== 0) return dateDiff;
+                                return (a.originalIndex || 0) - (b.originalIndex || 0);
+                              });
 
                               let vendorBalance = 0;
                               let vendorBalanceKgs = 0;
