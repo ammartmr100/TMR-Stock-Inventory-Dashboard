@@ -57,6 +57,7 @@ interface Transaction {
   trackingNumber: string;
   type: string;
   quantity: number;
+  qtyKgs: number;
   shift: string;
   department: 'oil-seal' | 'quality' | 'trimming' | 'molding' | 'fg-store' | 'mini-store' | 'bonding' | 'phosphate' | 'auto-clave' | 'extrusion';
 }
@@ -436,6 +437,23 @@ export default function App() {
         const qtyRaw = (row[finalQtyIdx] || '').toString().replace(/,/g, '');
         const qtyVal = parseFloat(qtyRaw);
 
+        let qtyKgs = 0;
+        let kgsIdx = -1;
+        if (tabToFetch === 'molding') kgsIdx = 6; // Column G
+        else if (tabToFetch === 'oil-seal') kgsIdx = 6; // Column G
+        else if (tabToFetch === 'trimming') kgsIdx = 7; // Column H
+        else if (tabToFetch === 'quality') kgsIdx = 5; // Column F
+
+        if (kgsIdx !== -1 && row[kgsIdx] !== undefined) {
+          const kgsRaw = (row[kgsIdx] || '').toString().replace(/,/g, '').trim();
+          const parsedKgs = parseFloat(kgsRaw);
+          if (!isNaN(parsedKgs)) {
+            qtyKgs = parsedKgs;
+          }
+        } else if (tabToFetch === 'mini-store') {
+          qtyKgs = isNaN(qtyVal) ? 0 : qtyVal;
+        }
+
         return {
           date: dateStr,
           parsedDate: parseSheetDate(dateStr),
@@ -443,6 +461,7 @@ export default function App() {
           trackingNumber: (row[finalJobIdx] || '').trim(),
           type: typeStr,
           quantity: isNaN(qtyVal) ? 0 : qtyVal,
+          qtyKgs: qtyKgs,
           shift: '', // Fallback
           department: tabToFetch
         };
@@ -1660,6 +1679,7 @@ export default function App() {
     partName: string;
     transactions: Transaction[];
     totals: Record<string, number>;
+    totalsKgs: Record<string, number>;
     sortedTotalsEntries: [string, number][];
     uniqueKey: string;
     isDuplicate: boolean;
@@ -1697,6 +1717,7 @@ export default function App() {
           partName,
           transactions: [],
           totals: {},
+          totalsKgs: {},
           sortedTotalsEntries: [],
           uniqueKey: groupKey,
           isDuplicate,
@@ -1708,6 +1729,7 @@ export default function App() {
       // Aggregate by type with department prefix to avoid collisions and allow sorting
       const typeKey = `${t.department}|${t.type}`;
       acc[groupKey].totals[typeKey] = (acc[groupKey].totals[typeKey] || 0) + t.quantity;
+      acc[groupKey].totalsKgs[typeKey] = (acc[groupKey].totalsKgs[typeKey] || 0) + (t.qtyKgs || 0);
       
       return acc;
     }, {} as Record<string, JobGroup>);
@@ -4147,21 +4169,30 @@ export default function App() {
                                     .slice(0, 10).map(([compositeKey, qty]) => {
                                       const [dept, type] = compositeKey.split('|');
                                       return (
-                                        <div key={compositeKey} className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-200 hover:shadow-md transition-all">
-                                          <div className={cn(
-                                            "w-1.5 h-1.5 rounded-full",
-                                            type.toLowerCase().includes('in') ? "bg-emerald-500" : "bg-rose-500"
-                                          )} />
-                                          <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-black uppercase tracking-tighter leading-none mb-0.5">{dept === 'mini-store' ? 'MINI STORE RUBBER' : dept.replace('-', ' ').toUpperCase()}</span>
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none">{type.toUpperCase()}</span>
+                                        <div key={compositeKey} className="flex items-center gap-3 pl-2.5 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-200 hover:shadow-md transition-all">
+                                          <div className="flex items-center gap-2">
+                                            <div className={cn(
+                                              "w-1.5 h-1.5 rounded-full shrink-0",
+                                              type.toLowerCase().includes('in') ? "bg-emerald-500" : "bg-rose-500"
+                                            )} />
+                                            <div className="flex flex-col">
+                                              <span className="text-[11px] font-black text-black uppercase tracking-tighter leading-none mb-0.5">{dept === 'mini-store' ? 'MINI STORE RUBBER' : dept.replace('-', ' ').toUpperCase()}</span>
+                                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none">{type.toUpperCase()}</span>
+                                            </div>
                                           </div>
-                                          <span className={cn(
-                                            "text-xs font-black ml-1",
-                                            type.toLowerCase().includes('in') ? "text-emerald-600" : "text-rose-600"
-                                          )}>
-                                            {qty.toLocaleString()}
-                                          </span>
+                                           <div className="flex flex-col items-end justify-center ml-auto border-l border-slate-100 pl-2">
+                                            <span className={cn(
+                                              "text-xs font-black leading-none",
+                                              type.toLowerCase().includes('in') ? "text-emerald-600" : "text-rose-600"
+                                            )}>
+                                              {qty.toLocaleString()} <span className="text-[8px] font-normal text-slate-400 lowercase">{dept === 'mini-store' ? 'kg' : 'pcs'}</span>
+                                            </span>
+                                            {dept !== 'mini-store' && (
+                                              <span className="text-[9px] font-bold text-slate-500 font-mono mt-1 leading-none">
+                                                {((job.totalsKgs && job.totalsKgs[compositeKey]) || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })} kg
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
                                       );
                                     })}
@@ -4199,6 +4230,7 @@ export default function App() {
                                   });
 
                                   let balance = 0;
+                                  let balanceKgs = 0;
                                   const ledger = deptTransactionsSorted.map((t: any) => {
                                     const typeLower = t.type.toLowerCase();
                                     const isOut = typeLower.includes('out') || typeLower.includes('rejection') || typeLower.includes('sent') || typeLower.includes('issue');
@@ -4217,10 +4249,13 @@ export default function App() {
                                       }
                                     }
 
+                                    const tKgs = t.qtyKgs || 0;
                                     if (effectiveType === 'in') {
                                       balance += t.quantity;
+                                      balanceKgs += tKgs;
                                     } else {
                                       balance -= t.quantity;
+                                      balanceKgs -= tKgs;
                                     }
 
                                     return {
@@ -4228,38 +4263,51 @@ export default function App() {
                                       type: effectiveType,
                                       originalType: t.type,
                                       quantity: t.quantity,
-                                      balance: balance
+                                      qtyKgs: tKgs,
+                                      balance: balance,
+                                      balanceKgs: balanceKgs
                                     };
                                   });
 
                                   let inQty = 0;
                                   let outQty = 0;
+                                  let inKgs = 0;
+                                  let outKgs = 0;
 
                                   deptTransactions.forEach((t: any) => {
                                     const typeLower = t.type.toLowerCase();
                                     const isOut = typeLower.includes('out') || typeLower.includes('rejection') || typeLower.includes('sent') || typeLower.includes('issue');
                                     const isIn = typeLower.includes('in') || typeLower.includes('recd') || typeLower.includes('received') || typeLower.includes('ok');
+                                    const tKgs = t.qtyKgs || 0;
 
                                     if (isOut) {
                                       outQty += t.quantity;
+                                      outKgs += tKgs;
                                     } else if (isIn) {
                                       inQty += t.quantity;
+                                      inKgs += tKgs;
                                     } else {
                                       if (typeLower.includes('out') || typeLower.includes('rejection')) {
                                         outQty += t.quantity;
+                                        outKgs += tKgs;
                                       } else {
                                         inQty += t.quantity;
+                                        inKgs += tKgs;
                                       }
                                     }
                                   });
 
                                   const pendingBalance = inQty - outQty;
+                                  const pendingKgs = inKgs - outKgs;
 
                                   return {
                                     ...dept,
                                     inQty,
                                     outQty,
                                     pendingBalance,
+                                    inKgs,
+                                    outKgs,
+                                    pendingKgs,
                                     ledger
                                   };
                                 });
@@ -4267,25 +4315,32 @@ export default function App() {
                               // Calculate vendor stock for this specific job
                               let vendorSent = 0; // Out to vendor (increases vendor stock)
                               let vendorRecv = 0; // In from vendor (decreases vendor stock)
+                              let vendorSentKgs = 0;
+                              let vendorRecvKgs = 0;
 
                               job.transactions.forEach((t: any) => {
                                 const typeLower = t.type.toLowerCase();
                                 const deptLower = t.department.toLowerCase();
+                                const tKgs = t.qtyKgs || 0;
 
                                 if (deptLower === 'trimming' && typeLower.includes('vendor')) {
                                   if (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue')) {
                                     vendorSent += t.quantity;
+                                    vendorSentKgs += tKgs;
                                   } else if (typeLower.includes('in') || typeLower.includes('recd') || typeLower.includes('received') || typeLower.includes('ok')) {
                                     vendorRecv += t.quantity;
+                                    vendorRecvKgs += tKgs;
                                   }
                                 }
 
                                 if (deptLower === 'mini-store' && typeLower.includes('vendor') && (typeLower.includes('out') || typeLower.includes('sent') || typeLower.includes('issue'))) {
                                   vendorSent += t.quantity;
+                                  vendorSentKgs += tKgs;
                                 }
                               });
 
                               const vendorPendingBalance = vendorSent - vendorRecv;
+                              const vendorPendingKgs = vendorSentKgs - vendorRecvKgs;
                               const hasVendorActivity = vendorSent > 0 || vendorRecv > 0;
 
                               const vendorTransactions = job.transactions.filter((t: any) => {
@@ -4304,9 +4359,11 @@ export default function App() {
                               const vendorTransactionsSorted = [...vendorTransactions].sort((a, b) => (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0));
 
                               let vendorBalance = 0;
+                              let vendorBalanceKgs = 0;
                               const vendorLedger = vendorTransactionsSorted.map((t: any) => {
                                 const typeLower = t.type.toLowerCase();
                                 const deptLower = t.department.toLowerCase();
+                                const tKgs = t.qtyKgs || 0;
                                 
                                 let isSent = false;
                                 let isRecv = false;
@@ -4324,8 +4381,10 @@ export default function App() {
 
                                 if (isSent) {
                                   vendorBalance += t.quantity;
+                                  vendorBalanceKgs += tKgs;
                                 } else if (isRecv) {
                                   vendorBalance -= t.quantity;
+                                  vendorBalanceKgs -= tKgs;
                                 }
 
                                 return {
@@ -4333,7 +4392,9 @@ export default function App() {
                                   type: isSent ? 'in' : 'out',
                                   originalType: isSent ? 'SENT' : 'RECEIVED',
                                   quantity: t.quantity,
-                                  balance: vendorBalance
+                                  qtyKgs: tKgs,
+                                  balance: vendorBalance,
+                                  balanceKgs: vendorBalanceKgs
                                 };
                               });
 
@@ -4347,7 +4408,7 @@ export default function App() {
                                           <Activity className="w-3.5 h-3.5 text-blue-600" />
                                           DEPARTMENT & VENDOR PENDING BALANCES (TOTAL IN - TOTAL OUT)
                                         </h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                                           {activeDeptBalances.map((dept) => (
                                             <div key={dept.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
                                               <div>
@@ -4363,55 +4424,87 @@ export default function App() {
                                                   </span>
                                                 </div>
                                                 
-                                                <div className="text-xl font-black text-slate-900 tracking-tight mb-3">
-                                                  {dept.pendingBalance.toLocaleString()}
+                                                <div className="flex flex-col mb-3">
+                                                  <div className="text-xl font-black text-slate-900 tracking-tight leading-none">
+                                                    {dept.pendingBalance.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal uppercase font-mono">{dept.id === 'mini-store' ? 'kg' : 'pcs'}</span>
+                                                  </div>
+                                                  {dept.id !== 'mini-store' && dept.pendingKgs !== undefined && dept.pendingKgs !== 0 && (
+                                                    <div className="text-[11px] font-bold text-slate-500 mt-1 font-mono">
+                                                      {dept.pendingKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg
+                                                    </div>
+                                                  )}
                                                 </div>
                                               </div>
 
-                                              <div className="space-y-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-600 mb-3">
-                                                <div className="flex justify-between items-center">
-                                                  <span className="flex items-center gap-1">
+                                              <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-600 mb-3">
+                                                <div className="flex justify-between items-start">
+                                                  <span className="flex items-center gap-1 mt-0.5">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                     Total In:
                                                   </span>
-                                                  <span className="font-extrabold text-slate-900">{dept.inQty.toLocaleString()}</span>
+                                                  <div className="text-right">
+                                                    <div className="font-extrabold text-slate-900 font-mono">{dept.inQty.toLocaleString()} <span className="text-[8px] text-slate-400 uppercase">{dept.id === 'mini-store' ? 'kg' : 'pcs'}</span></div>
+                                                    {dept.id !== 'mini-store' && dept.inKgs !== undefined && dept.inKgs !== 0 && (
+                                                      <div className="text-[9px] text-slate-500 font-semibold font-mono">{dept.inKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg</div>
+                                                    )}
+                                                  </div>
                                                 </div>
                                                 
-                                                <div className="flex justify-between items-center">
-                                                  <span className="flex items-center gap-1">
+                                                <div className="flex justify-between items-start">
+                                                  <span className="flex items-center gap-1 mt-0.5">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                                     Total Out:
                                                   </span>
-                                                  <span className="font-extrabold text-slate-900">{dept.outQty.toLocaleString()}</span>
+                                                  <div className="text-right">
+                                                    <div className="font-extrabold text-slate-900 font-mono">{dept.outQty.toLocaleString()} <span className="text-[8px] text-slate-400 uppercase">{dept.id === 'mini-store' ? 'kg' : 'pcs'}</span></div>
+                                                    {dept.id !== 'mini-store' && dept.outKgs !== undefined && dept.outKgs !== 0 && (
+                                                      <div className="text-[9px] text-slate-500 font-semibold font-mono">{dept.outKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg</div>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </div>
 
                                               {/* Chronological Ledger Section */}
                                               {dept.ledger && dept.ledger.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-slate-150">
-                                                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 pb-0.5 border-b border-slate-100">
-                                                    <span className="w-1/3">TYPE</span>
-                                                    <span className="w-1/3 text-right">QTY</span>
-                                                    <span className="w-1/3 text-right">LEFT</span>
+                                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                                    <span>TRANSACTION LEDGER</span>
                                                   </div>
-                                                  <div className="max-h-28 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-                                                    {dept.ledger.map((entry: any, index: number) => (
-                                                      <div key={index} className="flex justify-between items-center text-[10px] font-bold text-slate-700">
-                                                        <span className="w-1/3 flex items-center gap-1">
-                                                          <span className={cn(
-                                                            "w-1.5 h-1.5 rounded-full",
-                                                            entry.type === 'in' ? "bg-emerald-500" : "bg-rose-500"
-                                                          )}></span>
-                                                          <span className={cn(
-                                                            "uppercase text-[9px] font-black",
-                                                            entry.type === 'in' ? "text-emerald-600" : "text-rose-600"
-                                                          )}>{entry.type}</span>
-                                                          <span className="text-[8px] text-slate-400 font-normal font-mono">({entry.date})</span>
-                                                        </span>
-                                                        <span className="w-1/3 text-right font-mono text-slate-500">{entry.quantity.toLocaleString()}</span>
-                                                        <span className="w-1/3 text-right font-extrabold font-mono text-slate-900">{entry.balance.toLocaleString()}</span>
-                                                      </div>
-                                                    ))}
+                                                  <div className="border border-[#00aeef]/30 rounded-xl overflow-hidden shadow-sm bg-white">
+                                                    <div className="grid grid-cols-4 bg-[#00aeef] text-white text-[10px] font-black uppercase tracking-wider text-center py-2 shadow-sm">
+                                                      <div className="border-r border-white/20">Date</div>
+                                                      <div className="border-r border-white/20">In</div>
+                                                      <div className="border-r border-white/20">Out</div>
+                                                      <div>Balance</div>
+                                                    </div>
+                                                    <div className="max-h-96 overflow-y-auto divide-y divide-[#00aeef]/10 bg-white custom-scrollbar">
+                                                      {dept.ledger.map((entry: any, index: number) => {
+                                                        const isDebit = entry.type === 'in';
+                                                        return (
+                                                          <div key={index} className="grid grid-cols-4 text-[11px] font-bold text-slate-800 text-center py-2.5 hover:bg-[#00aeef]/5 transition-colors border-b border-[#00aeef]/15">
+                                                            <div className="text-slate-500 font-mono flex items-center justify-center border-r border-[#00aeef]/10">{entry.date}</div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex flex-col items-center justify-center", isDebit ? "text-slate-900 font-extrabold" : "text-slate-400 font-normal")}>
+                                                              <div>{isDebit ? entry.quantity.toLocaleString() : '0'}{isDebit && dept.id === 'mini-store' && <span className="text-[8px] font-normal text-slate-500 ml-0.5">kg</span>}</div>
+                                                              {dept.id !== 'mini-store' && isDebit && entry.qtyKgs !== undefined && entry.qtyKgs !== 0 && (
+                                                                <div className="text-[9px] text-slate-500 font-semibold">({entry.qtyKgs.toLocaleString()} kg)</div>
+                                                              )}
+                                                            </div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex flex-col items-center justify-center", !isDebit ? "text-slate-900 font-extrabold" : "text-slate-400 font-normal")}>
+                                                              <div>{!isDebit ? entry.quantity.toLocaleString() : '0'}{!isDebit && dept.id === 'mini-store' && <span className="text-[8px] font-normal text-slate-500 ml-0.5">kg</span>}</div>
+                                                              {dept.id !== 'mini-store' && !isDebit && entry.qtyKgs !== undefined && entry.qtyKgs !== 0 && (
+                                                                <div className="text-[9px] text-slate-500 font-semibold">({entry.qtyKgs.toLocaleString()} kg)</div>
+                                                              )}
+                                                            </div>
+                                                            <div className="font-mono text-slate-950 font-black flex flex-col items-center justify-center bg-slate-50/40">
+                                                              <div>{entry.balance.toLocaleString()}{dept.id === 'mini-store' && <span className="text-[8px] font-normal text-slate-500 ml-0.5">kg</span>}</div>
+                                                              {dept.id !== 'mini-store' && entry.balanceKgs !== undefined && entry.balanceKgs !== 0 && (
+                                                                <div className="text-[9px] text-slate-500 font-bold">({entry.balanceKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })} kg)</div>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
                                                   </div>
                                                 </div>
                                               )}
@@ -4434,7 +4527,12 @@ export default function App() {
                                                 </div>
                                                 
                                                 <div className="text-xl font-black text-amber-950 tracking-tight mb-3">
-                                                  {vendorPendingBalance.toLocaleString()}
+                                                  {vendorPendingBalance.toLocaleString()} <span className="text-[10px] text-amber-750 font-normal uppercase font-mono">pcs</span>
+                                                  {vendorPendingKgs !== undefined && vendorPendingKgs !== 0 && (
+                                                    <div className="text-[11px] font-bold text-amber-900 mt-1 font-mono">
+                                                      {vendorPendingKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg
+                                                    </div>
+                                                  )}
                                                 </div>
                                               </div>
 
@@ -4445,6 +4543,9 @@ export default function App() {
                                                     Sent (In):
                                                   </span>
                                                   <span className="font-extrabold text-amber-950">{vendorSent.toLocaleString()}</span>
+                                                   {vendorSentKgs !== undefined && vendorSentKgs !== 0 && (
+                                                     <div className="text-[9px] text-amber-800/70 font-semibold mt-0.5">{vendorSentKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg</div>
+                                                   )}
                                                 </div>
                                                 
                                                 <div className="flex justify-between items-center">
@@ -4453,35 +4554,53 @@ export default function App() {
                                                     Received (Out):
                                                   </span>
                                                   <span className="font-extrabold text-amber-950">{vendorRecv.toLocaleString()}</span>
+                                                   {vendorRecvKgs !== undefined && vendorRecvKgs !== 0 && (
+                                                     <div className="text-[9px] text-amber-800/70 font-semibold mt-0.5">{vendorRecvKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg</div>
+                                                   )}
                                                 </div>
                                               </div>
 
                                               {/* Vendor Chronological Ledger Section */}
                                               {vendorLedger && vendorLedger.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-amber-200/60">
-                                                  <div className="flex justify-between text-[9px] font-black text-amber-800/60 uppercase tracking-widest mb-2 pb-0.5 border-b border-amber-200/40">
-                                                    <span className="w-1/3">TYPE</span>
-                                                    <span className="w-1/3 text-right">QTY</span>
-                                                    <span className="w-1/3 text-right">LEFT</span>
+                                                <div className="mt-3 pt-3 border-t border-amber-200/50">
+                                                  <div className="text-[10px] font-black text-amber-900 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                                    <span>VENDOR LEDGER</span>
                                                   </div>
-                                                  <div className="max-h-28 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-                                                    {vendorLedger.map((entry: any, index: number) => (
-                                                      <div key={index} className="flex justify-between items-center text-[10px] font-bold text-amber-900/90">
-                                                        <span className="w-1/3 flex items-center gap-1">
-                                                          <span className={cn(
-                                                            "w-1.5 h-1.5 rounded-full",
-                                                            entry.type === 'in' ? "bg-amber-500" : "bg-rose-500"
-                                                          )}></span>
-                                                          <span className={cn(
-                                                            "uppercase text-[9px] font-black",
-                                                            entry.type === 'in' ? "text-amber-700" : "text-rose-700"
-                                                          )}>{entry.type}</span>
-                                                          <span className="text-[8px] text-amber-800/60 font-normal font-mono">({entry.date})</span>
-                                                        </span>
-                                                        <span className="w-1/3 text-right font-mono text-amber-700/85">{entry.quantity.toLocaleString()}</span>
-                                                        <span className="w-1/3 text-right font-extrabold font-mono text-amber-950">{entry.balance.toLocaleString()}</span>
-                                                      </div>
-                                                    ))}
+                                                  <div className="border border-[#00aeef]/30 rounded-xl overflow-hidden shadow-sm bg-white">
+                                                    <div className="grid grid-cols-4 bg-[#00aeef] text-white text-[10px] font-black uppercase tracking-wider text-center py-2 shadow-sm">
+                                                      <div className="border-r border-white/20">Date</div>
+                                                      <div className="border-r border-white/20">In</div>
+                                                      <div className="border-r border-white/20">Out</div>
+                                                      <div>Balance</div>
+                                                    </div>
+                                                    <div className="max-h-96 overflow-y-auto divide-y divide-[#00aeef]/10 bg-white custom-scrollbar">
+                                                      {vendorLedger.map((entry: any, index: number) => {
+                                                        const isDebit = entry.type === 'in';
+                                                        return (
+                                                          <div key={index} className="grid grid-cols-4 text-[11px] font-bold text-amber-950 text-center py-2.5 hover:bg-[#00aeef]/5 transition-colors border-b border-[#00aeef]/15">
+                                                            <div className="text-amber-800/75 font-mono flex items-center justify-center border-r border-[#00aeef]/10">{entry.date}</div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex flex-col items-center justify-center", isDebit ? "text-amber-950 font-extrabold" : "text-amber-700/50 font-normal")}>
+                                                              <div>{isDebit ? entry.quantity.toLocaleString() : '0'}</div>
+                                                              {isDebit && entry.qtyKgs !== undefined && entry.qtyKgs !== 0 && (
+                                                                <div className="text-[9px] text-amber-800/60 font-semibold">({entry.qtyKgs.toLocaleString()} kg)</div>
+                                                              )}
+                                                            </div>
+                                                            <div className={cn("font-mono border-r border-[#00aeef]/10 flex flex-col items-center justify-center", !isDebit ? "text-amber-950 font-extrabold" : "text-amber-700/50 font-normal")}>
+                                                              <div>{!isDebit ? entry.quantity.toLocaleString() : '0'}</div>
+                                                              {!isDebit && entry.qtyKgs !== undefined && entry.qtyKgs !== 0 && (
+                                                                <div className="text-[9px] text-amber-800/60 font-semibold">({entry.qtyKgs.toLocaleString()} kg)</div>
+                                                              )}
+                                                            </div>
+                                                            <div className="font-mono text-slate-950 font-black flex flex-col items-center justify-center bg-amber-50/10">
+                                                              <div>{entry.balance.toLocaleString()}</div>
+                                                              {entry.balanceKgs !== undefined && entry.balanceKgs !== 0 && (
+                                                                <div className="text-[9px] text-amber-800/70 font-bold">({entry.balanceKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })} kg)</div>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
                                                   </div>
                                                 </div>
                                               )}
@@ -4514,14 +4633,19 @@ export default function App() {
                                                 </div>
                                               </div>
                                               <div className="flex justify-between items-end">
-                                                <div className="text-right w-full">
-                                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none block mb-0.5">Quantity</span>
+                                                <div className="text-right w-full flex flex-col items-end">
+                                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none block mb-1">Quantity</span>
                                                   <span className={cn(
-                                                    "text-xs font-black",
+                                                    "text-sm font-black leading-none",
                                                     t.type.toLowerCase().includes('in') ? "text-emerald-600" : "text-rose-600"
                                                   )}>
-                                                    {t.quantity.toLocaleString()}
+                                                    {t.quantity.toLocaleString()} <span className="text-[9px] font-normal text-slate-450 uppercase">{t.department === 'mini-store' ? 'kg' : 'pcs'}</span>
                                                   </span>
+                                                  {t.department !== 'mini-store' && t.qtyKgs !== undefined && t.qtyKgs !== 0 && (
+                                                    <span className="text-[10px] font-bold text-slate-500 font-mono mt-1 leading-none">
+                                                      {t.qtyKgs.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} kg
+                                                    </span>
+                                                  )}
                                                 </div>
                                               </div>
                                             </div>
